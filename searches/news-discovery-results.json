@@ -1,0 +1,649 @@
+{
+  "run_date": "2026-04-21T07:41:27.670036",
+  "tbs": "qdr:d",
+  "endpoints": [
+    "search"
+  ],
+  "ground_truth_count": 8,
+  "total_queries": 10,
+  "summary": {
+    "search": {
+      "total_queries": 10,
+      "total_results": 61,
+      "unique_gt_hits": [
+        "Capsule Security",
+        "Creao AI",
+        "Ethermed",
+        "Hata",
+        "Spektr",
+        "Zenskar"
+      ],
+      "gt_hit_rate": "6/8 (75%)"
+    }
+  },
+  "query_coverage": {
+    "q1_broad_series_a": {
+      "search": [
+        "Hata"
+      ]
+    },
+    "q2_announcement_language": {
+      "search": [
+        "Hata"
+      ]
+    },
+    "q3_thesaasnews": {
+      "search": [
+        "Ethermed",
+        "Creao AI",
+        "Capsule Security"
+      ]
+    },
+    "q4_finsmes": {
+      "search": []
+    },
+    "q5_alleywatch": {
+      "search": []
+    },
+    "q6_press_wires": {
+      "search": [
+        "Hata"
+      ]
+    },
+    "q7_vc_language": {
+      "search": []
+    },
+    "q8_european": {
+      "search": []
+    },
+    "q9_tech_press": {
+      "search": []
+    },
+    "q10_infotechlead": {
+      "search": [
+        "Zenskar",
+        "Creao AI",
+        "Spektr"
+      ]
+    }
+  },
+  "runs": [
+    {
+      "query_id": "q1_broad_series_a",
+      "description": "broad Series A sweep",
+      "query": "\"Series A\" raises OR raised OR funding OR round million",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 9,
+      "gt_hits": {
+        "Hata": {
+          "source_url": "https://www.eqs-news.com/news/corporate/hata-completes-us8-million-series-a-financing-led-by-bybit/3fb256aa-28fd-4674-9a9a-0f73b6e7a751_en",
+          "source_domain": "www.eqs-news.com",
+          "title": "Hata Completes US$8 Million Series A Financing Led by Bybit"
+        }
+      },
+      "gt_hit_count": 1,
+      "gt_hit_names": [
+        "Hata"
+      ],
+      "results": [
+        {
+          "title": "Ideally Launches \u201cIdeally Canvas\u201d in U.S. as It Secures $10M Series ...",
+          "snippet": "The company's $10 million ($16M NZD) Series A funding round, led by Shearwater Capital with participation from Altered Capital, Icehouse Ventures and Ecliptic ...",
+          "link": "https://www.businesswire.com/news/home/20260420959370/en/Ideally-Launches-Ideally-Canvas-in-U.S.-as-It-Secures-%2410M-Series-A-Funding",
+          "source": ""
+        },
+        {
+          "title": "Ideally Launches Ideally Canvas After $10M Series A - Ventureburn",
+          "snippet": "Ideally raised $10 million USD ($13.4M AUD/NZD) in a Series A round led by Shearwater Capital, valuing the start-up at approximately $60 million. The ...",
+          "link": "https://ventureburn.com/ideally-launches-ideally-canvas-after-10m-series-a/",
+          "source": ""
+        },
+        {
+          "title": "Series A activity: Week of April 12, 2026",
+          "snippet": "Series A activity: Week of April 12, 2026. There were 31 Series As in the last week that raised a total of $752.2 million. The average deal size was $24.3 ...",
+          "link": "https://postround.substack.com/p/series-a-activity-week-of-april-12",
+          "source": ""
+        },
+        {
+          "title": "Ideally, the Kiwi consumer insights startup Google and Telstra use ...",
+          "snippet": "New Zealand startup Ideally has raised A$13.4 million in a Series A that values the consumer insights platform at $83m. The round was led by Shearwater Capital, ...",
+          "link": "https://www.startupdaily.net/topic/funding/ideally-the-kiwi-consumer-insights-startup-google-and-telstra-use-raises-13-4-million-series-a/",
+          "source": ""
+        },
+        {
+          "title": "Anthropic, a San Francisco-based AI startup building foundation ...",
+          "snippet": "AI funding is surging, taking 41% of $128 billion in US venture last year. Seed AI valuations run 42% higher. Series A averages $51.9 million. Series B medians ...",
+          "link": "https://www.instagram.com/p/DXXswOpEbxN/",
+          "source": ""
+        },
+        {
+          "title": "Cerca Magnetics Secures \u00a33.8m in Series A Funding to Scale ...",
+          "snippet": "Cerca Magnetics raises \u00a33.8M Series A led by Guinness Ventures to scale wearable quantum brain scanners using optically pumped magnetometers for clinical ...",
+          "link": "https://thequantuminsider.com/2026/04/21/cerca-magnetics-secures-38m-series-a-funding-scale-quantum-brain-scanner/",
+          "source": ""
+        },
+        {
+          "title": "This is the part of the job search nobody talks about. A startup closes ...",
+          "snippet": "A startup closes a $10 million funding round on a Monday. By Friday, they ... Funding: $30M Series A led by Andressen Horowitzz, with sy Angels ...",
+          "link": "https://www.instagram.com/reel/DXXzQOeDNJs/",
+          "source": ""
+        },
+        {
+          "title": "Hata Completes US$8 Million Series A Financing Led by Bybit",
+          "snippet": "The Series A round builds on Bybit's earlier participation in Hata's USD 4.2 million seed round, deepening a relationship that now extends into strategic ...",
+          "link": "https://www.eqs-news.com/news/corporate/hata-completes-us8-million-series-a-financing-led-by-bybit/3fb256aa-28fd-4674-9a9a-0f73b6e7a751_en",
+          "source": "",
+          "gt_match": "Hata"
+        },
+        {
+          "title": "Ideally Raises $13.4M In Series A Funding To Accelerate US ... - B&T",
+          "snippet": "Fast turnaround market research platform Ideally has raised AU$13.4 million in Series A funding to help fuel its US expansion. The round, led by Shearwater ...",
+          "link": "https://www.bandt.com.au/ideally-raises-13-4m-in-series-a-funding-to-accelerate-us-expansion/",
+          "source": ""
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:15.181704"
+    },
+    {
+      "query_id": "q2_announcement_language",
+      "description": "announcement language",
+      "query": "\"Series A\" announces OR secures OR closes OR completes funding",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 9,
+      "gt_hits": {
+        "Hata": {
+          "source_url": "https://www.facebook.com/DNewsAsia/posts/malaysian-digital-asset-exchange-hata-completes-its-us8mil-series-a-financing-le/1647078033028316/",
+          "source_domain": "www.facebook.com",
+          "title": "Malaysian digital asset exchange, Hata completes US$8mil Series A ..."
+        }
+      },
+      "gt_hit_count": 1,
+      "gt_hit_names": [
+        "Hata"
+      ],
+      "results": [
+        {
+          "title": "RIIG Technology, Inc. (dba HOOTL\u2122) Announces Successful Close ...",
+          "snippet": "RIIG Technology, Inc, doing business as HOOTL\u2122 (Humans Out of the Loop\u2122), announces the successful close of its $6M+ Series A financing round.",
+          "link": "https://www.businesswire.com/news/home/20260420139555/en/RIIG-Technology-Inc.-dba-HOOTL-Announces-Successful-Close-of-%246M-Million-Series-A-to-Accelerate-AI-Driven-Healthcare-and-Infrastructure-Solutions",
+          "source": ""
+        },
+        {
+          "title": "Cerca Magnetics Secures \u00a33.8m in Series A Funding to Scale ...",
+          "snippet": "Cerca Magnetics raises \u00a33.8M Series A led by Guinness Ventures to scale wearable quantum brain scanners using optically pumped magnetometers for clinical ...",
+          "link": "https://thequantuminsider.com/2026/04/21/cerca-magnetics-secures-38m-series-a-funding-scale-quantum-brain-scanner/",
+          "source": ""
+        },
+        {
+          "title": "Dnotitia Closes KRW 90 Billion Series A to Accelerate AI Storage ...",
+          "snippet": "(Dnotitia), a company specializing in long-term memory AI and semiconductor-integrated solutions, today announced that it has closed a KRW 90 billion Series A ...",
+          "link": "https://www.indystar.com/press-release/story/60332/dnotitia-closes-krw-90-billion-series-a-to-accelerate-ai-storage-expansion/",
+          "source": ""
+        },
+        {
+          "title": "Ideally Launches \u201cIdeally Canvas\u201d in U.S. as It Secures $10M Series ...",
+          "snippet": "The company's $10 million ($16M NZD) Series A funding round, led by Shearwater Capital with participation from Altered Capital, Icehouse Ventures and Ecliptic ...",
+          "link": "https://www.morningstar.com/news/business-wire/20260420959370/ideally-launches-ideally-canvas-in-us-as-it-secures-10m-series-a-funding",
+          "source": ""
+        },
+        {
+          "title": "This is the part of the job search nobody talks about. A startup closes ...",
+          "snippet": "Now this time we want to focus on startups that have just been funded. Whether they've just received money. Series A, series B, series C. Let's find those ...",
+          "link": "https://www.instagram.com/reel/DXXzQOeDNJs/",
+          "source": ""
+        },
+        {
+          "title": "Malaysian digital asset exchange, Hata completes US$8mil Series A ...",
+          "snippet": "Malaysian digital asset exchange, Hata completes its US$8mil Series A financing led by Bybit. Term sheet was signed back in Oct 2025 but due diligence...",
+          "link": "https://www.facebook.com/DNewsAsia/posts/malaysian-digital-asset-exchange-hata-completes-its-us8mil-series-a-financing-le/1647078033028316/",
+          "source": "",
+          "gt_match": "Hata"
+        },
+        {
+          "title": "Dnotitia Closes KRW 90 Billion Series A to Accelerate AI Storage ...",
+          "snippet": "(Dnotitia), a company specializing in long-term memory AI and semiconductor-integrated solutions, today announced that it has closed a KRW 90 billion Series A ...",
+          "link": "https://www.desmoinesregister.com/press-release/story/62134/dnotitia-closes-krw-90-billion-series-a-to-accelerate-ai-storage-expansion/",
+          "source": ""
+        },
+        {
+          "title": "Ideally secures $A13.4 million in Series A funding to boost US ... - Mi3",
+          "snippet": "Ideally has raised A$13.4 million in Series A funding at a valuation above A$83 million, as the AI-driven research firm accelerates US expansion and pitches ...",
+          "link": "https://www.mi-3.com.au/21-04-2026/ideally-secures-a134-million-series-funding-boost-us-expansion",
+          "source": ""
+        },
+        {
+          "title": "Renewable Metals secures $8.6 Million series A funding ...",
+          "snippet": "Renewable Metals secures $8.6 Million series A funding #energystorage #VCfunding #australia. Battery Recycling Company Renewable Metals Secures $8.6 Million ...",
+          "link": "https://x.com/Mercom/status/2046265134146859276",
+          "source": ""
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:17.814277"
+    },
+    {
+      "query_id": "q3_thesaasnews",
+      "description": "TheSaaSNews aggregator",
+      "query": "site:thesaasnews.com Series A",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 5,
+      "gt_hits": {
+        "Ethermed": {
+          "source_url": "https://www.thesaasnews.com/news/ethermed-raises-8-5-million-series-a",
+          "source_domain": "www.thesaasnews.com",
+          "title": "Ethermed Raises $8.5 Million Series A | The SaaS News"
+        },
+        "Creao AI": {
+          "source_url": "https://www.thesaasnews.com/news/creao-ai-lands-10-million-in-funding",
+          "source_domain": "www.thesaasnews.com",
+          "title": "Creao AI Lands $10 Million in Funding | The SaaS News"
+        },
+        "Capsule Security": {
+          "source_url": "https://www.thesaasnews.com/news/capsule-security-bags-7m-seed-round",
+          "source_domain": "www.thesaasnews.com",
+          "title": "Capsule Security Bags $7M Seed Round | The SaaS News"
+        }
+      },
+      "gt_hit_count": 3,
+      "gt_hit_names": [
+        "Ethermed",
+        "Creao AI",
+        "Capsule Security"
+      ],
+      "results": [
+        {
+          "title": "Ethermed Raises $8.5 Million Series A | The SaaS News",
+          "snippet": "Led by CEO Dan Friedman, Ethermed is a healthcare technology company focused on automating prior authorization and medical-necessity workflows using AI-driven ...",
+          "link": "https://www.thesaasnews.com/news/ethermed-raises-8-5-million-series-a",
+          "source": "",
+          "gt_match": "Ethermed"
+        },
+        {
+          "title": "Creao AI Lands $10 Million in Funding | The SaaS News",
+          "snippet": "Creao AI, a Palo Alto\u2013based AI startup, has raised $10 million in funding, bringing its total capital to $25 million. \u00b7 Led by Prosperity7 Ventures, a $3 billion ...",
+          "link": "https://www.thesaasnews.com/news/creao-ai-lands-10-million-in-funding",
+          "source": "",
+          "gt_match": "Creao AI"
+        },
+        {
+          "title": "INVIA Raises $1.2 Million in Funding | The SaaS News",
+          "snippet": "INVIA, a Cairo, Egypt\u2013based fintech startup building an AI-powered financial operating system for SMEs, has raised $1.2 million in funding. Investors.",
+          "link": "https://www.thesaasnews.com/news/invia-raises-1-2-million-in-funding",
+          "source": ""
+        },
+        {
+          "title": "Capsule Security Bags $7M Seed Round | The SaaS News",
+          "snippet": "Capsule Security, a Tel Aviv, Israel\u2013based runtime security layer purpose-built for enterprise AI agents, has emerged from stealth with a $7 million Seed round.",
+          "link": "https://www.thesaasnews.com/news/capsule-security-bags-7m-seed-round",
+          "source": "",
+          "gt_match": "Capsule Security"
+        },
+        {
+          "title": "Loop Raises $95 Million Series C | The SaaS News",
+          "snippet": "Loop, a San Francisco, CA\u2013based full-stack, verticalized AI platform for logistics and supply chains, has raised $95 million in Series C funding. Investors.",
+          "link": "https://www.thesaasnews.com/news/loop-raises-95-million-series-c",
+          "source": ""
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:19.692220"
+    },
+    {
+      "query_id": "q4_finsmes",
+      "description": "FinSMEs aggregator",
+      "query": "site:finsmes.com Series A",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 5,
+      "gt_hits": {},
+      "gt_hit_count": 0,
+      "gt_hit_names": [],
+      "results": [
+        {
+          "title": "Audrey AI Raises $1.8M in Pre-Seed Funding - FinSMEs",
+          "snippet": "Audrey AI, a Dublin, Ireland-based developer of an AI-powered financial auditing automation platform, raised $1.8M in pre-seed funding.",
+          "link": "https://www.finsmes.com/2026/04/audrey-ai-raises-1-8m-in-pre-seed-funding.html",
+          "source": ""
+        },
+        {
+          "title": "brainjo Raises \u20ac2M in Seed Funding - FinSMEs",
+          "snippet": "brainjo, a Regensburg, Germany-based company developing VR-based solutions for mental healthcare, raised \u20ac2M in Seed funding.",
+          "link": "https://www.finsmes.com/2026/04/brainjo-raises-e2m-in-seed-funding.html",
+          "source": ""
+        },
+        {
+          "title": "ViewsML Raises $4.9M in Seed Funding - FinSMEs",
+          "snippet": "ViewsML, a Vancouver, BC, Canada-based biomarker discovery company, raised $4.9M in seed funding. The round was led by Wittington Ventures with ...",
+          "link": "https://www.finsmes.com/2026/04/viewsml-raises-4-9m-in-seed-funding.html",
+          "source": ""
+        },
+        {
+          "title": "DeepWay Closes Second Tranche of Pre-IPO Financing - FinSMEs",
+          "snippet": "DeepWay Closes Second Tranche of Pre-IPO Financing; Total Pre-IPO Reaches $310M \u00b7 Vivatides Therapeutics Raises $54M in Series A Funding \u00b7 ShengShu Raises $293M ...",
+          "link": "https://www.finsmes.com/2026/04/deepway-closes-second-tranche-of-pre-ipo-financing-total-pre-ipo-reaches-310m.html",
+          "source": ""
+        },
+        {
+          "title": "Proteins.1 Raises $4.7M in Pre-Seed Funding - FinSMEs",
+          "snippet": "Proteins.1, an Espoo, Finland-based deep-tech diagnostics company, raised $4.7M in Pre-Seed funding. The round was led by Lifeline Ventures and Cloudberry ...",
+          "link": "https://www.finsmes.com/2026/04/proteins-1-raises-4-7m-in-pre-seed-funding.html",
+          "source": ""
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:21.406468"
+    },
+    {
+      "query_id": "q5_alleywatch",
+      "description": "AlleyWatch daily digest",
+      "query": "site:alleywatch.com funding report",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 2,
+      "gt_hits": {},
+      "gt_hit_count": 0,
+      "gt_hit_names": [],
+      "results": [
+        {
+          "title": "The AlleyWatch Startup Daily Funding Report: 4/20/2026",
+          "snippet": "The latest venture capital, seed, pre-seed, and angel deals for NYC startups for 4/20/2026 featuring funding details for Ciphero, and much more.",
+          "link": "https://alleywatch.com/2026/04/the-alleywatch-startup-daily-funding-report-4-20-2026/",
+          "source": ""
+        },
+        {
+          "title": "AlleyWatch",
+          "snippet": "AlleyWatch is the destination for startup news; opinions and reviews; investment and product information; events reported, experienced, seen, heard and ...",
+          "link": "https://www.alleywatch.com/author/alleywatch/",
+          "source": ""
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:22.383937"
+    },
+    {
+      "query_id": "q6_press_wires",
+      "description": "press wire sweep",
+      "query": "\"Series A\" site:businesswire.com OR site:prnewswire.com OR site:einpresswire.com",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 9,
+      "gt_hits": {
+        "Hata": {
+          "source_url": "https://www.prnewswire.com/news-releases/hata-completes-us8-million-series-a-financing-led-by-bybit-302747468.html",
+          "source_domain": "www.prnewswire.com",
+          "title": "Hata Completes US$8 Million Series A Financing Led by Bybit"
+        }
+      },
+      "gt_hit_count": 1,
+      "gt_hit_names": [
+        "Hata"
+      ],
+      "results": [
+        {
+          "title": "Hata Completes US$8 Million Series A Financing Led by Bybit",
+          "snippet": "The Series A round builds on Bybit's earlier participation in Hata's USD 4.2 million seed round, deepening a relationship that now extends into strategic ...",
+          "link": "https://www.prnewswire.com/news-releases/hata-completes-us8-million-series-a-financing-led-by-bybit-302747468.html",
+          "source": "",
+          "gt_match": "Hata"
+        },
+        {
+          "title": "Ideally Launches \u201cIdeally Canvas\u201d in U.S. as It Secures $10M Series ...",
+          "snippet": "The company's $10 million ($16M NZD) Series A funding round, led by Shearwater Capital with participation from Altered Capital, Icehouse Ventures and Ecliptic ...",
+          "link": "https://www.businesswire.com/news/home/20260420959370/en/Ideally-Launches-Ideally-Canvas-in-U.S.-as-It-Secures-%2410M-Series-A-Funding",
+          "source": ""
+        },
+        {
+          "title": "Synchrony Reports First Quarter 2026 Results - PR Newswire",
+          "snippet": "The Board also declared a quarterly cash dividend on the outstanding shares of its 5.625% Fixed Rate Non-Cumulative Perpetual Preferred Stock, Series A (the \" ...",
+          "link": "https://www.prnewswire.com/news-releases/synchrony-reports-first-quarter-2026-results-302747465.html",
+          "source": ""
+        },
+        {
+          "title": "LightSpun Names Healthcare Growth Veteran Bill Henderson as ...",
+          "snippet": "LightSpun Secures $13M Series A to Redefine Dental Insurance Administration with AI. BOSTON--(BUSINESS WIRE)--LightSpun (formerly 32Health), an AI-powered ...",
+          "link": "https://www.businesswire.com/news/home/20260420044740/en/LightSpun-Names-Healthcare-Growth-Veteran-Bill-Henderson-as-Strategic-Advisor-to-the-CEO-Accelerating-National-Expansion",
+          "source": ""
+        },
+        {
+          "title": "Vertical Aerospace Announces Execution and Closing of ...",
+          "snippet": "... Series A Convertible Preferred Equity facility provided by Yorkville Advisors Global, issuable at the Company's option in tranches over a term of 24 months ...",
+          "link": "https://www.businesswire.com/news/home/20260420705454/en/Vertical-Aerospace-Announces-Execution-and-Closing-of-Comprehensive-Financing-Package-of-up-to-%24850-Million",
+          "source": ""
+        },
+        {
+          "title": "Pinnacle Financial Partners announces common and preferred ...",
+          "snippet": "$0.46646 per share on the firm's Fixed-to-Floating Rate Non-Cumulative Perpetual Preferred Stock, Series A, payable on June 22, 2026, to shareholders of ...",
+          "link": "https://www.businesswire.com/news/home/20260420870559/en/Pinnacle-Financial-Partners-announces-common-and-preferred-stock-dividends",
+          "source": ""
+        },
+        {
+          "title": "Synthflow AI and 8x8 Enter Strategic Partnership to Deliver Next ...",
+          "snippet": "... Series A funding round earlier this year. Havlik brings more than 20 years of leadership experience in the contact center, CCaaS, and UCaaS sectors, having ...",
+          "link": "https://www.businesswire.com/news/home/20260421904109/en/Synthflow-AI-and-8x8-Enter-Strategic-Partnership-to-Deliver-Next-Generation-Agentic-AI",
+          "source": ""
+        },
+        {
+          "title": "Gridline Appoints Former CAIS Executive as Chief Operating Officer",
+          "snippet": "Crawford's appointment comes at a time of strong momentum at Gridline, which recently secured $18.5 million in Series A funding led by FINTOP. In response ...",
+          "link": "https://www.businesswire.com/news/home/20260420882015/en/Gridline-Appoints-Former-CAIS-Executive-as-Chief-Operating-Officer",
+          "source": ""
+        },
+        {
+          "title": "Liberty Broadband Corporation to Conduct Quarterly Q&A ...",
+          "snippet": "ENGLEWOOD, Colo.--(BUSINESS WIRE)--Liberty Broadband Corporation Declares Quarterly Cash Dividend on Series A Cumulative Redeemable Preferred Stock...",
+          "link": "https://www.businesswire.com/news/home/20260420829404/en/Liberty-Broadband-Corporation-to-Conduct-Quarterly-QA-Conference-Call",
+          "source": ""
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:23.426655"
+    },
+    {
+      "query_id": "q7_vc_language",
+      "description": "VC/investor announcement language",
+      "query": "\"led the round\" OR \"led the Series A\" OR \"led a\" Series A investment startup",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 10,
+      "gt_hits": {},
+      "gt_hit_count": 0,
+      "gt_hit_names": [],
+      "results": [
+        {
+          "title": "Exclusive: Startup Humble debuts autonomous truck targeting $900 ...",
+          "snippet": "IQ Capital led the round and was joined by Plural and others. PRIVATE EQUITY. - Sumeru Equity Partners led a $175 million growth investment in K1x ...",
+          "link": "https://fortune.com/2026/04/21/exclusive-humble-freight-autonomous-truck-eclipse-trucking/",
+          "source": ""
+        },
+        {
+          "title": "Slash Achieves Unicorn Status Following $100M Series C Fundraise",
+          "snippet": "New investor Khosla Ventures and Goodwater Capital, who led Slash's Series B just 16 months ago, co-led the round. This latest funding elevates Slash to unicorn ...",
+          "link": "https://financialit.net/news/fundraising-news/slash-achieves-unicorn-status-following-100m-series-c-fundraise",
+          "source": ""
+        },
+        {
+          "title": "Cursor Scores Another $5 Billion in New Raise - Yahoo Finance",
+          "snippet": "Heavy hitting venture firm Andreessen Horowitz co-led the round, along with Nvidia and Thrive Capital. All three firms have previously invested in Cursor ...",
+          "link": "https://finance.yahoo.com/sectors/technology/articles/cursor-scores-another-5-billion-192625967.html",
+          "source": ""
+        },
+        {
+          "title": "Artificial intelligence is entering a phase of capital dominance ...",
+          "snippet": "... startup in the world. The details: \u2022 Thrive Capital led the round, which included participation from Microsoft, Nvidia, SoftBank, MGX, and others. \u2022 OpenAI ...",
+          "link": "https://www.facebook.com/ForbesMENA.English/posts/artificial-intelligence-is-entering-a-phase-of-capital-dominance-where-a-small-g/1524394466363108/",
+          "source": ""
+        },
+        {
+          "title": "Warsaw Equity Group and Porsche Ventures Invest \u20ac5M",
+          "snippet": "Polish investment firm Warsaw Equity Group has led a \u20ac5 million Series A funding round in German EV charging technology company &Charge, joining forces with ...",
+          "link": "https://therecursive.com/warsaw-equity-group-porsche-ventures-charge-investment-ev-charging/",
+          "source": ""
+        },
+        {
+          "title": "Rainmatter, Turbostart co-lead $2.5 million pre-Series A round in ...",
+          "snippet": "Rainmatter by Zerodha and Turbostart co-led a $2.5 million pre-Series A investment in Lawyered, India's legal infrastructure platform for mobility.",
+          "link": "https://m.economictimes.com/small-biz/entrepreneurship/rainmatter-turbostart-co-lead-2-5-million-pre-series-a-round-in-lawyered-for-mobility/articleshow/130408966.cms",
+          "source": ""
+        },
+        {
+          "title": "Ashish Agrawal steps down from Groww to launch VC firm",
+          "snippet": "Agrawal had been closely involved with Groww since its early stages, having led the Series A investment while at Peak XV Partners. Early bet delivers strong ...",
+          "link": "https://www.peoplematters.in/news/leadership/ashish-agrawal-steps-down-from-groww-to-launch-vc-firm-49328",
+          "source": ""
+        },
+        {
+          "title": "Synthetic fuel startup Rivan raises \u00a325m investment | UKTN - LinkedIn",
+          "snippet": "... funding round in May 2025. IQ Capital led the round. #UKtech https://lnkd.in/eYuarf5P \u00b7 Synthetic fuel ...",
+          "link": "https://www.linkedin.com/posts/tech-city-news_synthetic-fuel-startup-rivan-raises-25m-activity-7451981200178450432-YhLB",
+          "source": ""
+        },
+        {
+          "title": "Tether discloses nearly 2 million-share stake in Bitmain-linked ...",
+          "snippet": "In 2026, it also co-led a $7.5 million round in Utexo, a startup building USDT settlement infrastructure on Bitcoin, and participated in a $5.2 million seed ...",
+          "link": "https://www.theblock.co/post/398101/tether-discloses-2-million-share-stake-bitmain-linked-antalpha-ipo",
+          "source": ""
+        },
+        {
+          "title": "Content Creator Nas Daily's AI Startup Raises $27M To Expand AI ...",
+          "snippet": "... Series A funding led by Khosla Ventures. Vinod Khosla and Nicole Fraenkel led the round on behalf of Khosla Ventures. 500 Global also participated ...",
+          "link": "https://www.netinfluencer.com/content-creator-nas-daily-ai-startup-raises-27m-usd-to-expand-ai-platform-for-solopreneurs/",
+          "source": ""
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:24.485311"
+    },
+    {
+      "query_id": "q8_european",
+      "description": "European coverage",
+      "query": "\"Series A\" startup funding site:eu-startups.com OR site:tech.eu OR site:techround.co.uk",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 10,
+      "gt_hits": {},
+      "gt_hit_count": 0,
+      "gt_hit_names": [],
+      "results": [
+        {
+          "title": "VisioLab raises $11M Series A to scale AI self-checkout globally",
+          "snippet": "VisioLab, a provider of AI-powered visual self-checkout solutions for food service, has closed an $11 million Series A financing round.",
+          "link": "https://tech.eu/2026/04/21/visiolab-raises-11m-series-a-to-scale-ai-self-checkout-globally/",
+          "source": ""
+        },
+        {
+          "title": "Smart Robotics secures \u20ac10M Series A to expand AI ... - Tech.eu",
+          "snippet": "Smart Robotics raised Series A funding to expand in Europe and advance its AI platform, supported by a leading dataset from real-world robotic operations.",
+          "link": "https://tech.eu/2026/04/21/smart-robotics-secures-eur10m-series-a-to-expand-ai-robotic-picking-in-europe/",
+          "source": ""
+        },
+        {
+          "title": "Zynt raises $500K pre-seed to drive signal-based B2B sales - Tech.eu",
+          "snippet": "Polish startup Zynt, which develops a signal intelligence platform for ... VisioLab raises $11M Series A to scale AI self-checkout globally. VisioLab, a ...",
+          "link": "https://tech.eu/2026/04/21/zynt-raises-500k-pre-seed-to-drive-signal-based-b2b-sales/",
+          "source": ""
+        },
+        {
+          "title": "OrangeQS extends seed round to \u20ac15M as it launches quantum chip ...",
+          "snippet": "VisioLab raises $11M Series A to scale AI self-checkout globally \u00b7 Discover More About the Tech.eu Summit London 2026 \u00b7 Discover More About the Tech.eu Summit ...",
+          "link": "https://tech.eu/2026/04/21/orangeqs-extends-seed-round-to-eur15m-as-it-launches-quantum-chip-testing-partnership-programme/",
+          "source": ""
+        },
+        {
+          "title": "Italy's venture market finds its rhythm after record 2025 - Tech.eu",
+          "snippet": "Recent rounds include: D Orbit's $62 million Series D in space logistics,; Subbyx's $35 million Series A in consumer platforms, and; Dronus' ...",
+          "link": "https://tech.eu/2026/04/21/italys-venture-market-finds-its-rhythm-after-record-2025/",
+          "source": ""
+        },
+        {
+          "title": "Following EU-Japan defence industry talks, Dronamics attracts ...",
+          "snippet": "AirHub, a Dutch startup based in Groningen, secured \u20ac4.4 million in Series A funding to expand its mission-critical drone software, which is designed to support ...",
+          "link": "https://www.eu-startups.com/2026/04/following-eu-japan-defence-industry-talks-bulgarias-dronamics-attracts-japanese-backing-amid-eu-defencetech-growth/",
+          "source": ""
+        },
+        {
+          "title": "Hello Inside pushes metabolic health into mainstream care with ...",
+          "snippet": "Next news. VisioLab raises $11M Series A to scale AI self-checkout globally. NEXT. VisioLab raises $11M Series A to scale AI self-checkout globally. VisioLab, a ...",
+          "link": "https://tech.eu/2026/04/21/hello-inside-pushes-metabolic-health-into-mainstream-care-with-barmer-deal/",
+          "source": ""
+        },
+        {
+          "title": "VisioLab Tag - Tech.eu",
+          "snippet": "VisioLab raises $11M Series A to scale AI self-checkout globally. VisioLab, a provider of AI-powered visual self-checkout solutions for food service ...",
+          "link": "https://tech.eu/tag/visiolab/",
+          "source": ""
+        },
+        {
+          "title": "Zynt Tag - Tech.eu",
+          "snippet": "VisioLab raises $11M Series A to scale AI self-checkout globally \u00b7 Rivan raises $34M to build synthetic gas infrastructure for Europe \u00b7 Aikido launches Endpoint ...",
+          "link": "https://tech.eu/tag/zynt/",
+          "source": ""
+        },
+        {
+          "title": "Smart Robotics Tag - Tech.eu",
+          "snippet": "Smart Robotics secures \u20ac10M Series A to expand AI robotic picking in Europe. Smart Robotics, an embodied AI company focused on intralogistics automation, ...",
+          "link": "https://tech.eu/tag/smart-robotics/",
+          "source": ""
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:25.322564"
+    },
+    {
+      "query_id": "q9_tech_press",
+      "description": "broader tech press",
+      "query": "\"Series A\" funding startup site:venturebeat.com OR site:siliconangle.com OR site:pulse2.com",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 0,
+      "gt_hits": {},
+      "gt_hit_count": 0,
+      "gt_hit_names": [],
+      "results": [],
+      "timestamp": "2026-04-21T07:41:26.265979"
+    },
+    {
+      "query_id": "q10_infotechlead",
+      "description": "InfotechLead daily VC roundup",
+      "query": "site:infotechlead.com venture capital funding",
+      "endpoint": "search",
+      "tbs": "qdr:d",
+      "result_count": 2,
+      "gt_hits": {
+        "Zenskar": {
+          "source_url": "https://infotechlead.com/tech/venture-capital-funding-loop-zenskar-creao-ai-95193",
+          "source_domain": "infotechlead.com",
+          "title": "Venture Capital Funding: Loop, Zenskar, Creao AI - InfotechLead"
+        },
+        "Creao AI": {
+          "source_url": "https://infotechlead.com/tech/venture-capital-funding-loop-zenskar-creao-ai-95193",
+          "source_domain": "infotechlead.com",
+          "title": "Venture Capital Funding: Loop, Zenskar, Creao AI - InfotechLead"
+        },
+        "Spektr": {
+          "source_url": "https://infotechlead.com/category/tech",
+          "source_domain": "infotechlead.com",
+          "title": "Latest tech trends, technology in enterprises - InfotechLead"
+        }
+      },
+      "gt_hit_count": 3,
+      "gt_hit_names": [
+        "Zenskar",
+        "Creao AI",
+        "Spektr"
+      ],
+      "results": [
+        {
+          "title": "Venture Capital Funding: Loop, Zenskar, Creao AI - InfotechLead",
+          "snippet": "Tech companies such as Loop, Zenskar, Creao AI, among others, have announced venture capital funding to expand AI platforms,",
+          "link": "https://infotechlead.com/tech/venture-capital-funding-loop-zenskar-creao-ai-95193",
+          "source": "",
+          "gt_match": "Creao AI"
+        },
+        {
+          "title": "Latest tech trends, technology in enterprises - InfotechLead",
+          "snippet": "Venture Capital Funding: Ultralight, Faraday Future, Action AI \u00b7 Venture Capital Funding: Loop, Zenskar, Creao AI \u00b7 Venture Capital Funding: Slash, spektr, Sage ...",
+          "link": "https://infotechlead.com/category/tech",
+          "source": "",
+          "gt_match": "Creao AI"
+        }
+      ],
+      "timestamp": "2026-04-21T07:41:27.369510"
+    }
+  ]
+}
