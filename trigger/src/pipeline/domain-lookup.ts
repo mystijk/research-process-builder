@@ -102,6 +102,27 @@ const NEWS_AND_MEDIA_DOMAINS = new Set([
   "bing.com",
   "finance.biggo.com",
   "gobiernu.cw",
+  "chosun.com",
+  "biz.chosun.com",
+  "chosun.co.kr",
+  "hankyung.com",
+  "mk.co.kr",
+  "sedaily.com",
+  "edaily.co.kr",
+  "etnews.com",
+  "zdnet.co.kr",
+  "bloter.net",
+  "platum.kr",
+  "thebell.co.kr",
+  "dealsite.co.kr",
+  "f6s.com",
+  "startupranking.com",
+  "startupblink.com",
+  "tracxn.com",
+  "owler.com",
+  "zoominfo.com",
+  "dnb.com",
+  "apollo.io",
 ]);
 
 interface DomainCandidate {
@@ -135,11 +156,21 @@ function normalizeForComparison(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function extractCompanyNames(companyName: string): string[] {
+  const names: string[] = [];
+  const dbaMatch = companyName.match(/\bdba\s+([^)]+)/i);
+  if (dbaMatch) {
+    names.push(dbaMatch[1].replace(/[™®©]/g, "").trim());
+  }
+  names.push(companyName.replace(/\s*\(.*?\)\s*/g, "").trim());
+  names.push(companyName);
+  return [...new Set(names.map(n => normalizeForComparison(n)).filter(n => n.length >= 3))];
+}
+
 function domainContainsCompanyName(domain: string, companyName: string): boolean {
   const normDomain = normalizeForComparison(domain.split(".")[0]);
-  const normCompany = normalizeForComparison(companyName);
-  if (normCompany.length < 3) return false;
-  return normDomain.includes(normCompany) || normCompany.includes(normDomain);
+  const names = extractCompanyNames(companyName);
+  return names.some(n => normDomain.includes(n) || n.includes(normDomain));
 }
 
 function extractDomainFromText(text: string): string[] {

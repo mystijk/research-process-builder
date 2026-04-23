@@ -47,7 +47,12 @@ function extractDomainFromArticle(articleText: string, companyName: string, sour
     catch { return ""; }
   })();
 
-  const normCompany = companyName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const companyNames: string[] = [];
+  const dbaMatch = companyName.match(/\bdba\s+([^)]+)/i);
+  if (dbaMatch) companyNames.push(dbaMatch[1].replace(/[™®©]/g, "").trim().toLowerCase().replace(/[^a-z0-9]/g, ""));
+  companyNames.push(companyName.replace(/\s*\(.*?\)\s*/g, "").trim().toLowerCase().replace(/[^a-z0-9]/g, ""));
+  companyNames.push(companyName.toLowerCase().replace(/[^a-z0-9]/g, ""));
+  const uniqueNames = [...new Set(companyNames.filter(n => n.length >= 3))];
 
   const patterns = [
     /(?:visit|learn more|more (?:info|information|at)|about us|website)\s*(?:at\s*)?[:.]?\s*(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*\.[a-z]{2,}(?:\.[a-z]{2,})?)/gi,
@@ -68,8 +73,11 @@ function extractDomainFromArticle(articleText: string, companyName: string, sour
       const normDomain = domain.split(".")[0].replace(/[^a-z0-9]/g, "");
       let score = candidates.get(domain) ?? 0;
 
-      if (normDomain.includes(normCompany) || normCompany.includes(normDomain)) {
-        score += 10;
+      for (const name of uniqueNames) {
+        if (normDomain.includes(name) || name.includes(normDomain)) {
+          score += 10;
+          break;
+        }
       }
       score += 1;
       candidates.set(domain, score);
