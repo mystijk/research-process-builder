@@ -170,6 +170,76 @@ function buildSkipEnrichRecord(company: Candidate, roundLabel: string, pipelineI
   };
 }
 
+async function enrichOneCompany(
+  company: Candidate,
+  roundConfig: RoundConfig,
+  pipelineId: string
+): Promise<EnrichedRecord | null> {
+  let articleText: string | null = null;
+  let sourceUrl = company.best_source_url;
+
+  if (sourceUrl) {
+    articleText = await fetchUrl(sourceUrl);
+    if (!articleText) {
+      for (const src of company.sources) {
+        if (src.url !== sourceUrl) {
+          articleText = await fetchUrl(src.url);
+          if (articleText) {
+            sourceUrl = src.url;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  let extracted = null;
+  if (articleText) {
+    extracted = await extractWithOpenAI(
+      articleText,
+      company.company_name,
+      company.amount ?? "",
+      roundConfig
+    );
+    if (extracted?.company_name === roundConfig.notRoundSentinel) {
+      logger.info(`Filtered post-extraction: ${company.company_name}`);
+      return null;
+    }
+  }
+
+  let domain = "not_found";
+  let domainSource = "not_found";
+
+  if (articleText) {
+    const articleDomain = extractDomainFromArticle(articleText, company.company_name, sourceUrl);
+    if (articleDomain) {
+      domain = articleDomain;
+      domainSource = "article_text_extract";
+    }
+  }
+
+  if (domain === "not_found") {
+    const extractedDomain = extracted?.company_domain?.replace(/^www\./, "");
+    if (extractedDomain && extractedDomain !== "not_stated" && !isExtractedDomainSuspect(extractedDomain, sourceUrl)) {
+      domain = extractedDomain;
+      domainSource = "gpt_extraction";
+    }
+  }
+
+  if (domain === "not_found") {
+    const clues = extractContextClues(extracted, company.sources[0]?.title ?? "");
+    const result = await lookupDomainMultiSignal(company.company_name, clues, sourceUrl);
+    domain = result.domain;
+    domainSource = result.source;
+  }
+
+  logger.info(`${company.company_name} → ${domain} (${domainSource})`);
+
+  return buildEnrichedRecord(company, extracted, domain, sourceUrl, roundConfig.roundLabel, articleText, pipelineId);
+}
+
+const ENRICH_CONCURRENCY = 5;
+
 async function enrichCompanies(
   companies: Candidate[],
   maxEnrich: number,
@@ -179,81 +249,19 @@ async function enrichCompanies(
   const enriched: EnrichedRecord[] = [];
   const toProcess = companies.slice(0, maxEnrich);
 
-  for (let i = 0; i < toProcess.length; i++) {
-    const company = toProcess[i];
-    logger.info(`Enriching ${i + 1}/${toProcess.length}: ${company.company_name}`);
+  for (let batchStart = 0; batchStart < toProcess.length; batchStart += ENRICH_CONCURRENCY) {
+    const batch = toProcess.slice(batchStart, batchStart + ENRICH_CONCURRENCY);
+    logger.info(`Enriching batch ${Math.floor(batchStart / ENRICH_CONCURRENCY) + 1}: ${batch.map(c => c.company_name).join(", ")}`);
 
-    let articleText: string | null = null;
-    let sourceUrl = company.best_source_url;
+    const results = await Promise.allSettled(
+      batch.map((company) => enrichOneCompany(company, roundConfig, pipelineId))
+    );
 
-    if (sourceUrl) {
-      articleText = await fetchUrl(sourceUrl);
-      if (!articleText) {
-        for (const src of company.sources) {
-          if (src.url !== sourceUrl) {
-            articleText = await fetchUrl(src.url);
-            if (articleText) {
-              sourceUrl = src.url;
-              break;
-            }
-          }
-        }
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value) {
+        enriched.push(r.value);
       }
     }
-
-    let extracted = null;
-    if (articleText) {
-      extracted = await extractWithOpenAI(
-        articleText,
-        company.company_name,
-        company.amount ?? "",
-        roundConfig
-      );
-      if (extracted?.company_name === roundConfig.notRoundSentinel) {
-        logger.info(`Filtered post-extraction: ${company.company_name}`);
-        continue;
-      }
-    }
-
-    let domain = "not_found";
-    let domainSource = "not_found";
-
-    // Step 1: Extract domain directly from PR article text (cheapest, most reliable)
-    if (articleText) {
-      const articleDomain = extractDomainFromArticle(articleText, company.company_name, sourceUrl);
-      if (articleDomain) {
-        domain = articleDomain;
-        domainSource = "article_text_extract";
-        logger.info(`Domain from article text: ${domain}`);
-      }
-    }
-
-    // Step 2: Trust GPT extraction if article text extraction missed it
-    if (domain === "not_found") {
-      const extractedDomain = extracted?.company_domain?.replace(/^www\./, "");
-      if (extractedDomain && extractedDomain !== "not_stated" && !isExtractedDomainSuspect(extractedDomain, sourceUrl)) {
-        domain = extractedDomain;
-        domainSource = "gpt_extraction";
-        logger.info(`Domain from GPT extraction: ${domain}`);
-      }
-    }
-
-    // Step 3: Search-based lookup as last resort
-    if (domain === "not_found") {
-      const clues = extractContextClues(extracted, company.sources[0]?.title ?? "");
-      logger.info(`Domain lookup with clues: ${JSON.stringify(clues)}`);
-      const result = await lookupDomainMultiSignal(company.company_name, clues, sourceUrl);
-      domain = result.domain;
-      domainSource = result.source;
-      logger.info(`Domain found: ${result.domain} (${result.confidence}, ${result.evidence})`);
-    }
-
-    logger.info(`Domain resolved: ${domain} via ${domainSource}`);
-
-    const record = buildEnrichedRecord(company, extracted, domain, sourceUrl, roundConfig.roundLabel, articleText, pipelineId);
-    enriched.push(record);
-
-    logger.info(`Enriched: ${record.company_name} | ${record.company_domain} | ${record.amount_raised}`);
   }
 
   return enriched;
@@ -294,19 +302,23 @@ export async function runFundingPipeline(
 
   logger.info("Stage 4: Output");
 
-  if (isSupabaseConfigured()) {
-    const tableExists = await checkTable(rc.supabaseTable);
-    if (tableExists) {
-      const upserted = await pushToSupabase(enriched, config.date, rc.supabaseTable);
-      logger.info(`Supabase: ${upserted}/${enriched.length} upserted to ${rc.supabaseTable}`);
-    } else {
-      logger.warn(`Supabase table ${rc.supabaseTable} not found`);
+  if (config.dryRun) {
+    logger.info("Dry run — skipping Supabase and webhook output");
+  } else {
+    if (isSupabaseConfigured()) {
+      const tableExists = await checkTable(rc.supabaseTable);
+      if (tableExists) {
+        const upserted = await pushToSupabase(enriched, config.date, rc.supabaseTable);
+        logger.info(`Supabase: ${upserted}/${enriched.length} upserted to ${rc.supabaseTable}`);
+      } else {
+        logger.warn(`Supabase table ${rc.supabaseTable} not found`);
+      }
     }
-  }
 
-  const webhookSent = await pushToWebhook(enriched, config.date, rc.webhookUrl, rc.webhookAuthToken);
-  if (webhookSent > 0) {
-    logger.info(`Webhook: ${webhookSent}/${enriched.length} sent`);
+    const webhookSent = await pushToWebhook(enriched, config.date, rc.webhookUrl, rc.webhookAuthToken);
+    if (webhookSent > 0) {
+      logger.info(`Webhook: ${webhookSent}/${enriched.length} sent`);
+    }
   }
 
   const durationMs = Date.now() - start;

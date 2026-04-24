@@ -22,8 +22,8 @@ search: `{{company_name}} {{category}} recent news`
 extract from results:
 
 - every distinct news event found
-- for each: date (or recency), event type (partnership/funding/acquisition/launch/expansion/leadership/controversy), and a three sentence summary
-- note which sources covered it (include URLs)
+- for each: exact date from the search snippet or article (e.g., "Mar 2, 2026"), event type (partnership/funding/acquisition/launch/expansion/leadership/controversy), source URL, and a three sentence summary
+- NEVER fabricate or guess a date. if no date appears in the snippet or article, use "date unknown". getting the date wrong is worse than admitting you don't have it.
 
 **stop if:** you found 4+ distinct news events covering multiple event types. skip to output.
 
@@ -34,8 +34,8 @@ search: `{{company_name}} acquisition OR funding {{current_year}}`
 extract from results:
 
 - any acquisitions (acquired someone or was acquired)
-- any funding rounds (amount, lead investor, date, round type)
-- three sentence summary per event
+- any funding rounds (amount, lead investor, exact date, round type)
+- source URL and three sentence summary per event
 
 **stop if:** combined with step 1 you have a clear picture of the company's financial trajectory and you also have non-financial news from step 1. skip to output.
 
@@ -46,7 +46,7 @@ search: `{{company_name}} partnership OR integration`
 extract from results:
 
 - strategic alliances, integration announcements, channel partnerships
-- three sentence summary per partnership (who, what, why it matters)
+- exact date, source URL, and three sentence summary per partnership (who, what, why it matters)
 
 ### step 4: product and expansion news
 
@@ -55,7 +55,7 @@ search: `{{company_name}} launches OR "new feature" OR expansion {{current_year}
 extract from results:
 
 - product launches, feature releases, geographic expansion, new offices, new markets
-- three sentence summary per event
+- exact date, source URL, and three sentence summary per event
 
 **stop if:** you have a solid mix of news across event types. skip to output.
 
@@ -67,7 +67,7 @@ extract from results:
 
 - CEO/founder quotes about company direction
 - new C-suite hires or departures
-- three sentence summary per event
+- exact date, source URL, and three sentence summary per event
 
 ### step 6: tech press (only if the company is VC-backed / well-known)
 
@@ -76,7 +76,7 @@ search: `{{company_name}} site:techcrunch.com`
 extract from results:
 
 - any coverage not already found
-- three sentence summary per article
+- exact date, source URL, and three sentence summary per article
 
 skip if the company is small or bootstrapped.
 
@@ -90,7 +90,7 @@ extract from results:
 
 - hiring activity (open roles = alive and growing)
 - recent social or blog posts from the company
-- three sentence summary of activity signal
+- exact date (if available), source URL, and three sentence summary of activity signal
 
 if even this returns nothing, that's the finding. "no news coverage found" is a signal, not a failure.
 
@@ -109,20 +109,13 @@ if even this returns nothing, that's the finding. "no news coverage found" is a 
 
 **news events:**
 
-1. [date or recency] — [event type] — [three sentence summary of what happened, why it matters, and what it signals]
+1. [exact date, e.g. "Mar 2, 2026" or "date unknown"] — [event type] — [three sentence summary of what happened, why it matters, and what it signals] — [source](url)
 
-2. [date or recency] — [event type] — [three sentence summary]
+2. [exact date or "date unknown"] — [event type] — [three sentence summary] — [source](url)
 
-3. [date or recency] — [event type] — [three sentence summary]
+3. [exact date or "date unknown"] — [event type] — [three sentence summary] — [source](url)
 
 (continue for all distinct events found)
 
 **event types found:** [comma separated, e.g. "funding, partnerships, product launches"]
-**event types not found:** [comma separated, e.g. "acquisitions, controversies"]
-
-**what this tells us:** [two sentences on the company's current state and direction based on the news pattern]
-
-**sources:**
-- [source name](url) — what was found there
-- [source name](url) — what was found there
 ```
