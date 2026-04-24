@@ -123,6 +123,22 @@ const NEWS_AND_MEDIA_DOMAINS = new Set([
   "zoominfo.com",
   "dnb.com",
   "apollo.io",
+  "technews180.com",
+  "securitybrief.co",
+  "investing.com",
+  "seekingalpha.com",
+  "marketwatch.com",
+  "barrons.com",
+  "ft.com",
+  "economist.com",
+  "itwire.com",
+  "securityweek.com",
+  "securityboulevard.com",
+  "helpnetsecurity.com",
+  "theregister.com",
+  "computing.co.uk",
+  "channele2e.com",
+  "sdxcentral.com",
 ]);
 
 interface DomainCandidate {
