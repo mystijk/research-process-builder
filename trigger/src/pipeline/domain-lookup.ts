@@ -141,13 +141,6 @@ const NEWS_AND_MEDIA_DOMAINS = new Set([
   "sdxcentral.com",
 ]);
 
-interface DomainCandidate {
-  domain: string;
-  score: number;
-  appearances: number;
-  evidence: string[];
-}
-
 function isDomainDisqualified(domain: string): boolean {
   const clean = domain.replace(/^www\./, "");
   for (const d of DISQUALIFIED_DOMAINS) {
@@ -190,32 +183,6 @@ export function isDomainBlocked(domain: string): boolean {
   return isDomainDisqualified(domain) || isDomainNews(domain) || isDomainSuspectByTLD(domain);
 }
 
-function normalizeForComparison(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function extractCompanyNames(companyName: string): string[] {
-  const names: string[] = [];
-  const dbaMatch = companyName.match(/\bdba\s+([^)]+)/i);
-  if (dbaMatch) {
-    names.push(dbaMatch[1].replace(/[™®©]/g, "").trim());
-  }
-  names.push(companyName.replace(/\s*\(.*?\)\s*/g, "").trim());
-  names.push(companyName);
-  return [...new Set(names.map(n => normalizeForComparison(n)).filter(n => n.length >= 3))];
-}
-
-function domainContainsCompanyName(domain: string, companyName: string): boolean {
-  const normDomain = normalizeForComparison(domain.split(".")[0]);
-  const names = extractCompanyNames(companyName);
-  return names.some(n => normDomain.includes(n) || n.includes(normDomain));
-}
-
-function extractDomainFromText(text: string): string[] {
-  const domainPattern = /\b([a-z0-9][-a-z0-9]*\.(?:com|io|ai|co|org|net|dev|app|tech|health|bio|xyz|gg|so|cc|me))\b/gi;
-  const matches = text.match(domainPattern) ?? [];
-  return [...new Set(matches.map(m => m.toLowerCase()))];
-}
 
 export interface DomainResult {
   domain: string;
@@ -231,148 +198,196 @@ export interface ContextClues {
   founderName?: string;
 }
 
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
+const MAX_SEARCH_ROUNDS = 3;
+
+const SEARCH_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "web_search",
+    description: "Search Google via Serper. Use regular web search (not news). Returns titles, URLs, and meta description snippets. Use industry + company name + 'website' as your primary query pattern. Use location to disambiguate common names.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The search query. Use industry context to disambiguate. Example: 'fintech Hata website' or 'AI legal Harvey company website'",
+        },
+      },
+      required: ["query"],
+    },
+  },
+};
+
+const DOMAIN_RESOLVE_SYSTEM = `You find the official website domain for a startup that recently raised funding. You have a web search tool.
+
+SEARCH STRATEGY (in order):
+1. Primary: "{company_name}" {industry} website
+2. If ambiguous: site:crunchbase.com "{company_name}" — Crunchbase snippets often contain the actual domain in text like "Company (domain.com) raised..."
+3. If still ambiguous: add location to disambiguate
+4. If common-word name (Keep, Clay, Era): search "{company_name}" {industry} startup funding — funding articles link to the actual company
+
+IMPORTANT:
+- These are STARTUPS that raised venture funding. Not large enterprises or legacy companies.
+- The domain often does NOT match the company name. Examples: Keep -> trykeep.com, Gong -> gong.io, Plaid -> plaid.com. Don't assume {name}.com is correct — verify from search results.
+- Crunchbase snippets are your best friend for obscure startups. The snippet text often contains the domain directly.
+- Look at SERP snippet descriptions to verify the domain matches the RIGHT company in the RIGHT industry
+- NEVER return social media, news/media, investor, or directory domains (linkedin, crunchbase, pitchbook, techcrunch, etc.)
+- NEVER return the source article domain
+- Return ONLY the bare domain (e.g. "hata.io", "mosaic.pe") — no protocol, no www, no path
+- If confident, return after 1 search. If ambiguous, refine (max 3 searches)
+- If you cannot determine the domain, return "not_found"
+
+RESPONSE FORMAT (when done searching):
+{"domain": "example.com", "confidence": "high|medium|low", "evidence": "brief reason"}`;
+
+interface ToolCallResult {
+  id: string;
+  function: { name: string; arguments: string };
+}
+
+interface ChatMessage {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string | null;
+  tool_calls?: ToolCallResult[];
+  tool_call_id?: string;
+}
+
+async function executeSearchTool(query: string): Promise<string> {
+  const items = await searchSerper(query, 5, "");
+  if (items.length === 0) return "No results found.";
+
+  return items
+    .map((item, i) => {
+      const link = item.link ?? "";
+      const title = item.title ?? "";
+      const snippet = item.snippet ?? "";
+      return `[${i + 1}] ${title}\n    URL: ${link}\n    ${snippet}`;
+    })
+    .join("\n\n");
+}
+
 export async function lookupDomainMultiSignal(
   companyName: string,
   clues: ContextClues,
   sourceUrl?: string
 ): Promise<DomainResult> {
+  if (!OPENAI_API_KEY) {
+    return { domain: "not_found", confidence: "low", source: "search_only", evidence: "no OPENAI_API_KEY" };
+  }
+
   const sourceDomain = sourceUrl
     ? new URL(sourceUrl).hostname.replace(/^www\./, "")
     : "";
 
-  const candidates = new Map<string, DomainCandidate>();
+  const contextParts: string[] = [`Company: ${companyName}`];
+  if (clues.industry) contextParts.push(`Industry: ${clues.industry}`);
+  if (clues.productOrService) contextParts.push(`Product/service: ${clues.productOrService}`);
+  if (clues.location) contextParts.push(`Location: ${clues.location}`);
+  if (clues.founderName) contextParts.push(`Founder: ${clues.founderName}`);
+  if (sourceDomain) contextParts.push(`Source article domain (DO NOT return this): ${sourceDomain}`);
 
-  function addCandidate(domain: string, title: string, snippet: string, searchLabel: string) {
-    if (isDomainBlocked(domain)) return;
-    if (sourceDomain && domain === sourceDomain) return;
+  const messages: ChatMessage[] = [
+    { role: "system", content: DOMAIN_RESOLVE_SYSTEM },
+    { role: "user", content: contextParts.join("\n") },
+  ];
 
-    const existing = candidates.get(domain);
-    if (existing) {
-      existing.appearances++;
-      existing.score += 2;
-      existing.evidence.push(searchLabel);
-    } else {
-      let score = 0;
-      if (domainContainsCompanyName(domain, companyName)) score += 5;
-      if (title.toLowerCase().includes(companyName.toLowerCase())) score += 2;
-      if (snippet.toLowerCase().includes(companyName.toLowerCase())) score += 1;
-      if (/\.(com|io|ai|co)$/.test(domain)) score += 1;
-      candidates.set(domain, {
-        domain,
-        score,
-        appearances: 1,
-        evidence: [searchLabel],
-      });
-    }
-  }
+  let searchCount = 0;
 
-  const searches: { query: string; label: string; extractFromSnippet?: boolean }[] = [];
-
-  searches.push({
-    query: `"${companyName}" startup website`,
-    label: "quoted+startup",
-  });
-
-  searches.push({
-    query: `site:crunchbase.com "${companyName}"`,
-    label: "crunchbase",
-    extractFromSnippet: true,
-  });
-
-  const industryTerm = clues.industry || clues.productOrService || "";
-  if (industryTerm) {
-    searches.push({
-      query: `"${companyName}" ${industryTerm} official site`,
-      label: "industry+site",
-    });
-  }
-
-  searches.push({
-    query: `"${companyName}" company -site:linkedin.com -site:crunchbase.com`,
-    label: "direct-company",
-  });
-
-  if (clues.founderName) {
-    searches.push({
-      query: `"${clues.founderName}" "${companyName}" website`,
-      label: "founder+company",
-    });
-  }
-
-  for (const s of searches) {
+  for (let round = 0; round < MAX_SEARCH_ROUNDS + 1; round++) {
     try {
-      const items = await searchSerper(s.query, 5, "");
-      for (const item of items) {
-        const link = item.link ?? "";
-        if (!link.includes("://")) continue;
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0,
+          max_tokens: 300,
+          messages,
+          tools: [SEARCH_TOOL],
+          tool_choice: round < MAX_SEARCH_ROUNDS ? "auto" : "none",
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
 
-        const domain = new URL(link).hostname.replace(/^www\./, "");
-        const snippet = item.snippet ?? "";
-        const title = item.title ?? "";
-
-        if (s.extractFromSnippet) {
-          const domainsInSnippet = extractDomainFromText(snippet);
-          for (const d of domainsInSnippet) {
-            if (!isDomainBlocked(d) && d !== sourceDomain) {
-              const nameMatch = domainContainsCompanyName(d, companyName);
-              const existing = candidates.get(d);
-              if (existing) {
-                existing.appearances++;
-                existing.score += 3;
-                existing.evidence.push("crunchbase_snippet");
-              } else {
-                candidates.set(d, {
-                  domain: d,
-                  score: nameMatch ? 8 : 4,
-                  appearances: 1,
-                  evidence: ["crunchbase_snippet"],
-                });
-              }
-            }
-          }
-        }
-
-        addCandidate(domain, title, snippet, s.label);
+      if (!resp.ok) {
+        return { domain: "not_found", confidence: "low", source: "search_only", evidence: `openai ${resp.status}` };
       }
+
+      const data = (await resp.json()) as {
+        choices: [{
+          message: {
+            content: string | null;
+            tool_calls?: ToolCallResult[];
+          };
+          finish_reason: string;
+        }];
+      };
+
+      const choice = data.choices[0];
+      const msg = choice.message;
+
+      if (msg.tool_calls && msg.tool_calls.length > 0) {
+        messages.push({ role: "assistant", content: msg.content, tool_calls: msg.tool_calls });
+
+        for (const tc of msg.tool_calls) {
+          const args = JSON.parse(tc.function.arguments);
+          const query = args.query ?? "";
+          searchCount++;
+          const searchResult = await executeSearchTool(query);
+          messages.push({
+            role: "tool",
+            tool_call_id: tc.id,
+            content: searchResult,
+          });
+        }
+        continue;
+      }
+
+      const content = msg.content?.trim() ?? "";
+      let parsed: { domain?: string; confidence?: string; evidence?: string } = {};
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        // fall through
+      }
+
+      const rawDomain = (parsed.domain ?? "").replace(/^(https?:\/\/|www\.)/, "").split("/")[0].toLowerCase();
+
+      if (!rawDomain || rawDomain === "not_found" || isDomainBlocked(rawDomain) || rawDomain === sourceDomain) {
+        return {
+          domain: "not_found",
+          confidence: "low",
+          source: "search_only",
+          evidence: `${searchCount} searches, agent returned: ${rawDomain || "empty"} — ${parsed.evidence ?? "no evidence"}`,
+        };
+      }
+
+      const confidence = (parsed.confidence === "high" || parsed.confidence === "medium" || parsed.confidence === "low")
+        ? parsed.confidence
+        : "medium";
+
+      return {
+        domain: rawDomain,
+        confidence,
+        source: "search_validated",
+        evidence: `${searchCount} searches — ${parsed.evidence ?? "agent resolved"}`,
+      };
     } catch {
-      // continue
+      break;
     }
   }
-
-  if (candidates.size === 0) {
-    return {
-      domain: "not_found",
-      confidence: "low",
-      source: "search_only",
-      evidence: `${searches.length} searches returned no valid candidates`,
-    };
-  }
-
-  const sorted = [...candidates.values()].sort((a, b) => b.score - a.score);
-  const best = sorted[0];
-  const second = sorted[1];
-
-  let confidence: "high" | "medium" | "low";
-  if (best.score >= 8 && domainContainsCompanyName(best.domain, companyName)) {
-    confidence = "high";
-  } else if (best.appearances >= 2 || best.score >= 5) {
-    confidence = "medium";
-  } else {
-    confidence = "low";
-  }
-
-  if (second && best.score - second.score <= 2) {
-    confidence = confidence === "high" ? "medium" : "low";
-  }
-
-  const source = best.evidence.includes("crunchbase_snippet")
-    ? "crunchbase_signal" as const
-    : "search_validated" as const;
 
   return {
-    domain: best.domain,
-    confidence,
-    source,
-    evidence: `score=${best.score}, ${best.appearances} appearances [${best.evidence.join(", ")}]`,
+    domain: "not_found",
+    confidence: "low",
+    source: "search_only",
+    evidence: `agent failed after ${searchCount} searches`,
   };
 }

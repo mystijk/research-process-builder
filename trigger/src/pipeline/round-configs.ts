@@ -10,7 +10,7 @@ Article:
 {{articleText}}
 
 Return exactly this JSON:
-{"company_name": "...", "company_domain": "...", "amount_raised": "...", "lead_investors": "...", "round_reasoning": "..."}
+{"company_name": "...", "company_domain": "...", "amount_raised": "...", "lead_investors": "...", "round_reasoning": "...", "industry": "...", "location": "..."}
 
 Rules:
 - company_name = the company that RAISED money (NOT the investor/VC)
@@ -18,6 +18,8 @@ Rules:
 - amount_raised = exact amount with currency symbol (e.g. "$15M", "EUR10M", "KRW 90B")
 - lead_investors = who led the round, comma-separated. "not_stated" if unknown
 - round_reasoning = why they raised / what funds are for, 1-2 sentences. "not_stated" if unknown
+- industry = primary industry/vertical (e.g. "AI", "fintech", "healthtech", "cybersecurity", "SaaS"). "not_stated" if unclear
+- location = company HQ city and country (e.g. "San Francisco, US", "London, UK", "Tel Aviv, Israel"). "not_stated" if unknown
 - If this is NOT actually a ${roundLabel} funding announcement, set company_name to "${sentinel}"`;
 }
 

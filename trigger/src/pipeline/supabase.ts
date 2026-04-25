@@ -188,7 +188,7 @@ export async function pushRaisingFiRows<T extends Record<string, unknown>>(
   for (const row of deduped) {
     try {
       const resp = await fetch(
-        `${SUPABASE_URL}/rest/v1/${tableName}?on_conflict=company_name,discovered_date`,
+        `${SUPABASE_URL}/rest/v1/${tableName}?on_conflict=source_url`,
         {
           method: "POST",
           headers: headers("resolution=merge-duplicates"),

@@ -41,7 +41,7 @@ interface FundingRow {
   source_url: string;
   lead_investors: string;
   round_reasoning: string;
-  discovered_by: string;
+  discovered_by_pipeline: string;
   industry: string;
   location: string;
   source_count: number;
@@ -133,7 +133,7 @@ function parseTweet(tweet: Tweet): FundingRow | null {
     source_url: `https://x.com/${RAISINGFI_USERNAME}/status/${tweet.id}`,
     lead_investors: "not_stated",
     round_reasoning: "not_stated",
-    discovered_by: "raisingfi",
+    discovered_by_pipeline: "raisingfi",
     industry: parsed.industry ?? "",
     location: parsed.location ?? "",
     source_count: 1,

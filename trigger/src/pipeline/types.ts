@@ -57,6 +57,8 @@ export interface ExtractedData {
   amount_raised: string;
   lead_investors: string;
   round_reasoning: string;
+  industry?: string;
+  location?: string;
 }
 
 export interface EnrichedRecord {

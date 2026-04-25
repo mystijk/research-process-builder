@@ -12,7 +12,7 @@ import { extractWithOpenAI } from "./openai.js";
 import { scoreAndFilter } from "./filters.js";
 import { isSupabaseConfigured, checkTable, pushToSupabase, getRecentCompanyNames } from "./supabase.js";
 import { pushToWebhook } from "./webhook.js";
-import { lookupDomainMultiSignal, isDomainBlocked } from "./domain-lookup.js";
+import { lookupDomainMultiSignal, isDomainBlocked, type ContextClues } from "./domain-lookup.js";
 
 const SUSPECT_DOMAIN_PATTERNS = [
   /newswire|businesswire|prnewswire|einpresswire|globenewswire/i,
@@ -104,32 +104,42 @@ function extractDomainFromArticle(articleText: string, companyName: string, sour
 }
 
 function extractContextClues(
-  extracted: { round_reasoning?: string; lead_investors?: string } | null,
+  extracted: { round_reasoning?: string; lead_investors?: string; industry?: string; location?: string } | null,
   articleTitle: string
-): { industry?: string; productOrService?: string } {
-  const clues: { industry?: string; productOrService?: string } = {};
+): ContextClues {
+  const clues: ContextClues = {};
 
-  const reasoning = extracted?.round_reasoning ?? "";
-  const combined = `${articleTitle} ${reasoning}`;
+  if (extracted?.industry && extracted.industry !== "not_stated") {
+    clues.industry = extracted.industry;
+  }
 
-  const industryPatterns = [
-    /\b(AI|artificial intelligence|machine learning|ML)\b/i,
-    /\b(fintech|financial technology|payments|banking)\b/i,
-    /\b(healthtech|healthcare|medical|biotech|pharma)\b/i,
-    /\b(SaaS|software|platform|cloud)\b/i,
-    /\b(cybersecurity|security|infosec)\b/i,
-    /\b(e-commerce|ecommerce|retail|marketplace)\b/i,
-    /\b(robotics|autonomous|automation)\b/i,
-    /\b(climate|cleantech|energy|sustainability)\b/i,
-    /\b(edtech|education|learning)\b/i,
-    /\b(proptech|real estate)\b/i,
-  ];
+  if (extracted?.location && extracted.location !== "not_stated") {
+    clues.location = extracted.location;
+  }
 
-  for (const pattern of industryPatterns) {
-    const match = combined.match(pattern);
-    if (match) {
-      clues.industry = match[0];
-      break;
+  if (!clues.industry) {
+    const reasoning = extracted?.round_reasoning ?? "";
+    const combined = `${articleTitle} ${reasoning}`;
+
+    const industryPatterns = [
+      /\b(AI|artificial intelligence|machine learning|ML)\b/i,
+      /\b(fintech|financial technology|payments|banking)\b/i,
+      /\b(healthtech|healthcare|medical|biotech|pharma)\b/i,
+      /\b(SaaS|software|platform|cloud)\b/i,
+      /\b(cybersecurity|security|infosec)\b/i,
+      /\b(e-commerce|ecommerce|retail|marketplace)\b/i,
+      /\b(robotics|autonomous|automation)\b/i,
+      /\b(climate|cleantech|energy|sustainability)\b/i,
+      /\b(edtech|education|learning)\b/i,
+      /\b(proptech|real estate)\b/i,
+    ];
+
+    for (const pattern of industryPatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        clues.industry = match[0];
+        break;
+      }
     }
   }
 
