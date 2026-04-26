@@ -1,6 +1,6 @@
 # find-local-business-website
 
-**Status:** in-progress — ground truth built, annealing next
+**Status:** validated — 93% accuracy, process.md assembled
 **Created:** 2026-04-26
 **Parent process:** find-website (draft, never validated)
 **Use case:** UCC lead enrichment — 75K local SMBs need website + owner discovery
