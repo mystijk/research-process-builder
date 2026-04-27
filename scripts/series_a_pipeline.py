@@ -92,18 +92,72 @@ def normalize_company_name(name: str) -> str:
     return name.lower().strip()
 
 
+FUNDING_VERBS = r'(?:raises?|secures?|closes?|announces?|gets?|lands?|nabs?|bags?|receives?|completes?|eyes?|scores?|pockets?|wraps?\s+up|picks?\s+up|pulls?\s+in|hauls?\s+in|snags?|grabs?|locks?\s+in|banks?)'
+
+# Article-style prefixes to strip — "AI Startup Auth0" → "Auth0"
+PREFIX_STRIP = re.compile(
+    r'^(?:AI|Fintech|Tech|Identity\s+Authentication|Cloud|Crypto|Healthcare|Biotech|SaaS|Cybersecurity|Robotics|Climate|Edtech|Insurtech|Foodtech|Proptech)\s+(?:Startup|Company|Firm|Platform|Provider)\s+',
+    re.IGNORECASE
+)
+
+# Phrases that indicate a non-company extraction (column header, post slug, generic phrase)
+BAD_NAME_PHRASES = (
+    ":",                         # "TechCrunch Mobility: Elon's admission"
+    "'s post",                   # LinkedIn post slugs
+    "'s newsletter",
+    "'s admission",
+    "deal closing",
+    "fund managers",
+    "tech trends",
+    "latest tech",
+    "closing for",
+    "market watch",
+    "series a funding",
+    "series a round",
+    "weekly news",
+    "daily roundup",
+    "funding roundup",
+    "press release",
+)
+
+
+def _is_bad_extraction(name: str) -> bool:
+    """Heuristic filter for known-bad extracted names."""
+    if not name:
+        return True
+    low = name.lower()
+    for phrase in BAD_NAME_PHRASES:
+        if phrase in low:
+            return True
+    # All-lowercase or mostly-lowercase = title fragment, not a name
+    letters = [c for c in name if c.isalpha()]
+    if letters and sum(1 for c in letters if c.isupper()) / len(letters) < 0.10:
+        return True
+    return False
+
+
+def _clean_extracted_name(name: str) -> str:
+    """Strip article-style prefixes and possessive-noise from an extracted name."""
+    name = name.strip()
+    # Strip "AI Startup ", "Fintech Startup ", etc.
+    name = PREFIX_STRIP.sub("", name).strip()
+    # Strip leading "Startup " on its own
+    name = re.sub(r'^Startup\s+', '', name, flags=re.IGNORECASE).strip()
+    return name
+
+
 def extract_company_name_from_title(title: str) -> str:
     """Best-effort company name extraction from article title."""
-    m = re.match(r'^([A-Z][\w\s.&\'-]{1,40}?)\s+(?:raises?|secures?|closes?|announces?|gets?|lands?|nabs?|bags?|receives?|completes?)\b', title, re.IGNORECASE)
+    m = re.match(rf'^([A-Z][\w\s.&\'-]{{1,40}}?)\s+{FUNDING_VERBS}\b', title, re.IGNORECASE)
     if m:
-        name = m.group(1).strip()
-        if not VC_PATTERNS.search(name):
+        name = _clean_extracted_name(m.group(1))
+        if not VC_PATTERNS.search(name) and not _is_bad_extraction(name):
             return name
 
     m = re.search(r'(?:in|into|backs?|for)\s+([A-Z][\w\s.&\'-]{1,30}?)(?:\s*[,.]|\s+to\b|\s+for\b|$)', title)
     if m:
-        name = m.group(1).strip()
-        if not VC_PATTERNS.search(name):
+        name = _clean_extracted_name(m.group(1))
+        if not VC_PATTERNS.search(name) and not _is_bad_extraction(name):
             return name
 
     return ""
@@ -172,13 +226,20 @@ class SeriesAPipeline(ResearchPipeline):
             company = extract_company_name_from_title(title)
             if not company:
                 fallback = title.split(" - ")[0].split(" | ")[0]
-                fallback = re.split(r'\s+(?:Raises?|Secures?|Closes?|Announces?)\b', fallback)[0]
-                company = fallback.strip()[:50]
+                fallback = re.split(rf'\s+{FUNDING_VERBS}\b', fallback, flags=re.IGNORECASE)[0]
+                fallback = _clean_extracted_name(fallback.strip()[:50])
+                if not _is_bad_extraction(fallback):
+                    company = fallback
 
             company = re.sub(r'\s+Tag$', '', company, flags=re.IGNORECASE).strip()
             company = re.sub(r'^\[PDF\]\s*', '', company).strip()
 
             if not company or len(company) < 3:
+                filtered_out.append({"title": title[:80], "reason": "no extractable company name", "url": url})
+                continue
+
+            if _is_bad_extraction(company):
+                filtered_out.append({"title": title[:80], "reason": "extracted name flagged as bad pattern", "url": url})
                 continue
 
             if company.lower() in {"u.s", "u.s.", "us", "series a", "series a funding", "funding", "startup", "the"}:

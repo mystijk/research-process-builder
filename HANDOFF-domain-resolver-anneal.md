@@ -56,16 +56,17 @@ Current pipeline returns `not_found` when all 3 tiers fail. The agent fallback (
 
 **Budget:** ~$3.00 (agent calls on ~50 companies + search iterations)
 
-### 3. Tighten name extraction (Stage 2)
-`extract_company_name_from_title()` in `series_a_pipeline.py` sometimes extracts article titles instead of company names (e.g. "TechCrunch Mobility: Elon's admission" → not a company).
+### 3. Tighten name extraction (Stage 2) — DONE 2026-04-26
 
-**Anneal approach:**
-- Collect all Stage 2 outputs from multiple days
-- Flag cases where company_name > 30 chars or contains common article words
-- Add patterns to filter these in Stage 2
-- The fuzzy dedup already catches most downstream, but cleaner Stage 2 = less noise in enrichment
+**Shipped:**
+- `FUNDING_VERBS` regex expanded — added `eyes`, `scores`, `pockets`, `wraps up`, `picks up`, `pulls in`, `hauls in`, `snags`, `grabs`, `locks in`, `banks`. Catches headlines like "Lumio eyes Series A" that previously got filtered.
+- `_clean_extracted_name()` — strips article-style prefixes (`AI Startup`, `Fintech Startup`, `Identity Authentication Startup`, etc.). "Identity Authentication Startup Auth0 Raises…" → `Auth0`.
+- `_is_bad_extraction()` — heuristic filter for column headers, post slugs, generic phrases. Catches: colons in name, `'s Post`, `'s Newsletter`, `Deal Closing`, `Fund Managers`, `Weekly News`, mostly-lowercase fragments.
+- Fallback path also runs cleaning + bad-extraction filter.
+- Bad rows now get filtered_out reason (`extracted name flagged as bad pattern`) instead of leaking to Stage 3 enrichment.
+- `test_name_extraction.py` — 18 tests (all pass): verb expansion, prefix strip, bad-pattern reject.
 
-**Budget:** ~$0.50 (analysis only, no API calls needed for most fixes)
+**Validated against 2026-04-26 stage2:** 5 bad extractions identified pre-fix would now be filtered (TechCrunch Mobility column header, AI Market Watch's Post, Latest tech trends, Warehoused Deal Closing, Identity Authentication Startup Auth0 stripped to Auth0). 4 false-negatives ("Lumio eyes…", "GobbleCube snags…") would now extract correctly.
 
 ### 4. Cross-day dedup (Supabase level) — DONE 2026-04-26
 
@@ -151,7 +152,7 @@ py backfill_domains.py --fix --commit
 |------|-----------|
 | Expand ground truth | $0.50 |
 | Reduce not_found (agent comparison) | $3.00 |
-| Name extraction tightening | $0.50 |
+| ~~Name extraction tightening~~ DONE | $0 (offline) |
 | ~~Cross-day dedup testing~~ DONE | $0 (offline) |
 | Block list expansion | $0.50 |
 | Prompt annealing | $2.50 |
