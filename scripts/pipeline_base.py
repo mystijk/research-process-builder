@@ -70,6 +70,65 @@ if SUPABASE_URL and not SUPABASE_URL.startswith("http"):
 SUPABASE_KEY = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
 
 
+# ---------------------------------------------------------------------------
+# Graduated extraction prompt — see prompts/extract-companies-batch/
+# v004, score 1.0000 / 32 GT cases (mean 0.9939 across 4 reruns), $0.0012/batch.
+# Edit by re-annealing, not in-place: changes here drift from the test suite.
+# ---------------------------------------------------------------------------
+
+_EXTRACT_COMPANIES_BATCH_SYSTEM = (
+    "You extract structured data from news search results. Output strict JSON only."
+)
+
+_EXTRACT_COMPANIES_BATCH_USER_TEMPLATE = """Identify the COMPANY THAT RAISED FUNDING in each numbered news item.
+
+CRITICAL: company and is_funding are INDEPENDENT.
+- is_funding=true if the item is ANY way about a funding round (announced, closed, eyed, secured, raising, even multi-company roundups, even aggregator listings of past rounds). Funding verbs: raises/raised/secures/closes/lands/snags/announces/eyes (eyeing future round still counts).
+- is_funding=false ONLY for: profile pages with no funding mention, generic explainers about VC mechanics, 404/empty pages, or news fully unrelated to funding.
+- company = the SINGLE startup that got the money. Returning null does NOT make is_funding false. A roundup of 5 funded startups is is_funding=true with company=null.
+
+NEVER return as company:
+- An investor / VC firm / fund
+- A publication name (TechCrunch, AI Market Watch, FemWealth, InforCapital, etc.)
+- A person's name (founder, journalist)
+
+RETURN company=null WHEN:
+- Roundup / weekly digest / multi-company list (2+ funded companies named)
+- Snippet truncates the company name with "..." before it can be read
+- Title and snippet describe DIFFERENT funding deals (conflict where neither is clearly "the" subject)
+- Aggregator listing (Tracxn / Crunchbase feed where title is unrelated to snippet contents)
+- Publisher feed (multiple unrelated funded companies in the snippet)
+
+TITLE vs SNIPPET PRIORITY:
+- Title clearly names a funded company with a funding verb -> trust title even if snippet is unrelated boilerplate.
+- Title generic ("AI Startup Secures..."), publisher column ("TechCrunch Mobility:..."), social junk ("...- Facebook/LinkedIn/Instagram"), or possessive ("Jane's Era Raises..." -> "Era") -> use snippet to find company.
+- Investor-led syntax "X led a Series A in Y" -> Y is the funded company.
+- Bullet snippets where one entity "led the round" = investor; the other named entity is the funded co.
+
+EXAMPLES:
+- TITLE: "Lumio eyes Series A round after $4 million seed funding" SNIPPET: "Lumio eyes Series A round after $4 million seed funding..." -> {"company":"Lumio","is_funding":true}  // "eyes" still counts; company named in title
+- TITLE: "TechCrunch Mobility: Elon's admission" SNIPPET: "A&K Robotics, a Vancouver maker of AVs, raised $8M Series A led by BDC..." -> {"company":"A&K Robotics","is_funding":true}
+- TITLE: "AI Startup Secures $150M..." SNIPPET: "...Amperos Health raised Series A to enhance AI denial mgmt..." -> {"company":"Amperos Health","is_funding":true}
+- TITLE: "Itaú Ventures led a Series A in Minter, a startup..." -> {"company":"Minter","is_funding":true}
+- TITLE: "Elizabeth Dorman & Megan Gole's Era Raises $11M" SNIPPET: "<unrelated German startup>" -> {"company":"Era","is_funding":true}
+- TITLE: "[Korean Startup Weekly News #115] Point2..." SNIPPET: "Dnotitia Raises $63.4M..." -> {"company":null,"is_funding":true}  // weekly roundup, still about funding
+- TITLE: "Startups are raising big bucks!..." SNIPPET: "Mindbridge AI raises 8.4M... Whimstay Raises $10M..." -> {"company":null,"is_funding":true}  // roundup, still funding
+- TITLE: "Fintech VC Funding Remains Steady..." SNIPPET: "...inKind's $450M, Vestwell's $385M Series E, Fundamental's $225M Series A" -> {"company":null,"is_funding":true}  // aggregator list, still funding
+- TITLE: "Latest tech trends - InfotechLead" SNIPPET: "Verda secures $117M... Venture Capital Funding: Realm, Capsule Security, Prefix..." -> {"company":null,"is_funding":true}  // publisher feed of multiple deals, still funding
+- TITLE: "OpenAI - 2026 Funding Rounds - Tracxn" SNIPPET: "BigBuy - raised $4.68M Series A..." -> {"company":null,"is_funding":true}  // Tracxn aggregator
+- TITLE: "India-based Nava has raised US$22..." SNIPPET: "Foundry Group, key investor in Graphen, led a $23.5M round..." -> {"company":"Nava","is_funding":true}
+- TITLE: "WhoaZone Equine - Facebook" SNIPPET: "...Series A investment into Etalon. Series A funding is..." -> {"company":"Etalon","is_funding":true}
+- TITLE: "Alphabet may put up to $40B..." SNIPPET: "...• Thrive Capital led the round, with Microsoft, Nvidia... • OpenAI..." -> {"company":"OpenAI","is_funding":true}
+- TITLE: "AI Market Watch's Post - LinkedIn" SNIPPET: "... raised 1.7B JPY Series A, led by Angel..." -> {"company":null,"is_funding":true}  // truncated name
+- TITLE: "Warehoused Deal Closing for New Fund Managers" SNIPPET: "The company raises Series A at $20M... LPs inherit a 4x markup..." -> {"company":null,"is_funding":false}  // generic LP mechanics explainer
+- TITLE: "India Post to open payments bank..." SNIPPET: "Verda secures $117M..." -> {"company":null,"is_funding":false}  // title is non-funding, snippet is unrelated feed
+
+Return STRICT JSON: {"results":[{"idx":1,"company":"Auth0","is_funding":true},{"idx":2,"company":null,"is_funding":false}]}
+
+Items:
+{items}"""
+
+
 class ResearchPipeline:
     """
     Base class for 4-stage research pipelines.
@@ -194,10 +253,11 @@ class ResearchPipeline:
 
         Returns: {idx: {"company": str|None, "is_funding": bool}}.
 
-        Snippet is the structural unlock — title alone misses cases like
-        "TechCrunch Mobility: Elon's admission" where the company only
-        appears in the snippet. This replaces the FUNDING_VERBS / PREFIX_STRIP /
-        BAD_NAME_PHRASES regex pile by reading both signals.
+        Uses the graduated v004 prompt from prompts/extract-companies-batch/
+        (annealed 2026-04-27, score 1.0000 on 32-case GT, mean 0.9939 across
+        4 reruns). Items are formatted with 1-based LOCAL idx within each
+        batch; the model returns 1-based local idx and we map back to the
+        item's global idx for the output dict.
         """
         out: dict[int, dict] = {}
         if not items:
@@ -209,29 +269,15 @@ class ResearchPipeline:
         for start in range(0, len(items), batch_size):
             batch = items[start : start + batch_size]
             payload_lines = []
-            for it in batch:
+            for local_idx, it in enumerate(batch, 1):
                 snippet = (it.get("snippet") or "")[:280].replace("\n", " ").strip()
                 title = (it.get("title") or "").replace("\n", " ").strip()
                 payload_lines.append(
-                    f'[{it["idx"]}] TITLE: {title} | SNIPPET: {snippet}'
+                    f"[{local_idx}] TITLE: {title} | SNIPPET: {snippet}"
                 )
 
-            user_msg = (
-                "For each numbered news item, identify the COMPANY THAT RAISED FUNDING.\n"
-                "The company is usually the subject of a verb like raises/secures/closes/"
-                "announces/eyes/snags/lands.\n"
-                "Read both TITLE and SNIPPET — the snippet often names the company when the "
-                "title is generic\n"
-                "(e.g. title \"TechCrunch Mobility: Elon's admission\" but snippet starts "
-                '"A&K Robotics raised $8M").\n'
-                "NEVER return the investor / VC firm. NEVER return a publication name "
-                "(TechCrunch, AI Market Watch, FemWealth).\n"
-                "If the item is a roundup / column / multi-company piece with no single "
-                "subject, return null.\n"
-                "If it isn't a funding announcement at all, set is_funding=false and company=null.\n\n"
-                "Return STRICT JSON: "
-                '{"results":[{"idx":1,"company":"Auth0","is_funding":true},...]}\n\n'
-                "Items:\n" + "\n".join(payload_lines)
+            user_msg = _EXTRACT_COMPANIES_BATCH_USER_TEMPLATE.replace(
+                "{items}", "\n".join(payload_lines)
             )
 
             try:
@@ -249,7 +295,7 @@ class ResearchPipeline:
                         "messages": [
                             {
                                 "role": "system",
-                                "content": "You extract structured data. Output strict JSON.",
+                                "content": _EXTRACT_COMPANIES_BATCH_SYSTEM,
                             },
                             {"role": "user", "content": user_msg},
                         ],
@@ -259,11 +305,12 @@ class ResearchPipeline:
                 resp.raise_for_status()
                 body = json.loads(resp.json()["choices"][0]["message"]["content"])
                 for r in body.get("results", []):
-                    idx = r.get("idx")
-                    if idx is None:
+                    local_idx = r.get("idx")
+                    if local_idx is None or not (1 <= local_idx <= len(batch)):
                         continue
+                    global_idx = batch[local_idx - 1]["idx"]
                     company = (r.get("company") or "").strip() or None
-                    out[idx] = {
+                    out[global_idx] = {
                         "company": company,
                         "is_funding": bool(r.get("is_funding")),
                     }
