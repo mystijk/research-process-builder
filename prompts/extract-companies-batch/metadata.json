@@ -1,0 +1,51 @@
+{
+  "name": "extract-companies-batch",
+  "description": "Identify the company that raised funding from a batch of (title, snippet) pairs returned by a Google news search. Returns {company, is_funding} per item. Handles roundups, investor-led syntax, generic/publisher titles, possessive prefixes, title-snippet conflicts, and aggregator listings.",
+  "graduated_version": "v004",
+  "target_model": "gpt-4o-mini",
+  "api_call": {
+    "model": "gpt-4o-mini",
+    "temperature": 0,
+    "response_format": {"type": "json_object"},
+    "max_tokens": 2000
+  },
+  "batch_size": 25,
+  "scores": {
+    "baseline": 0.7594,
+    "graduated": 1.0000,
+    "graduated_mean_3_runs": 0.9939,
+    "graduated_min_observed": 0.9812,
+    "threshold": 0.95
+  },
+  "tokens": {
+    "input_per_batch": 4530,
+    "output_per_batch": 867,
+    "input_baseline": 2276,
+    "output_baseline": 871
+  },
+  "cost_per_scoring_run": 0.0012,
+  "total_anneal_cost_usd": 0.00538,
+  "iterations": 5,
+  "iteration_log": [
+    {"version": "v001-baseline", "score": 0.7594, "mutation": "starting point"},
+    {"version": "v002", "score": 0.8156, "mutation": "explicit decision rules; title-vs-snippet priority; investor-led/bullet/possessive guidance"},
+    {"version": "v003", "score": 0.9500, "mutation": "v002 + 11 few-shot examples covering each failure class"},
+    {"version": "v004", "score": 1.0000, "mutation": "clarify is_funding independence from company=null; add 'eyes' verb example; add 4 roundup-still-funding examples"},
+    {"version": "v005", "score": 0.9281, "mutation": "SUBTRACTIVE — removed 4 examples; rejected (dropped below threshold)"}
+  ],
+  "input_schema": {
+    "items": "list of {title: string, snippet: string} (max 25 per batch)"
+  },
+  "output_schema": {
+    "results": "list of {idx: int (1-indexed in batch), company: string|null, is_funding: bool}"
+  },
+  "test_cases": "test_cases.json (32 hand-labeled real cases)",
+  "scoring": {
+    "company_weight": 0.7,
+    "is_funding_weight": 0.3,
+    "company_match_rule": "case-insensitive, whitespace-normalized exact match. null and empty string are equivalent. Returning any string when null was expected is a fail."
+  },
+  "baseline_source": "scripts/pipeline_base.py extract_companies_batch()",
+  "timestamp": "2026-04-27",
+  "annealer": "claude-opus-4-7"
+}

@@ -1,0 +1,86 @@
+{
+  "runs": [
+    {
+      "version": "v001-baseline",
+      "score": 0.759375,
+      "cost": 0.000864,
+      "tokens_in": 2276,
+      "tokens_out": 871,
+      "failing_idxs": [
+        1,
+        4,
+        8,
+        9,
+        10,
+        13,
+        18,
+        19,
+        23,
+        24,
+        30
+      ],
+      "notes": "baseline from pipeline_base.py",
+      "timestamp": "2026-04-27T03:19:44.515957"
+    },
+    {
+      "version": "v002",
+      "score": 0.8156249999999999,
+      "cost": 0.0009396,
+      "tokens_in": 2792,
+      "tokens_out": 868,
+      "failing_idxs": [
+        1,
+        2,
+        4,
+        8,
+        9,
+        10,
+        13,
+        19,
+        23,
+        24
+      ],
+      "notes": "v002: explicit decision rules, title-vs-snippet priority, investor-led/bullet/possessive guidance",
+      "timestamp": "2026-04-27T03:20:42.014355"
+    },
+    {
+      "version": "v003",
+      "score": 0.95,
+      "cost": 0.001053,
+      "tokens_in": 3560,
+      "tokens_out": 865,
+      "failing_idxs": [
+        2,
+        8,
+        10
+      ],
+      "notes": "v003: v002 + 11 few-shot examples covering each failure class",
+      "timestamp": "2026-04-27T03:21:01.928570"
+    },
+    {
+      "version": "v004",
+      "score": 1.0,
+      "cost": 0.0011997,
+      "tokens_in": 4530,
+      "tokens_out": 867,
+      "failing_idxs": [],
+      "notes": "v004: clarify is_funding independence from company=null; add Lumio 'eyes' + roundup-still-funding examples",
+      "timestamp": "2026-04-27T03:22:19.637793"
+    },
+    {
+      "version": "v005",
+      "score": 0.928125,
+      "cost": 0.0010095,
+      "tokens_in": 3602,
+      "tokens_out": 782,
+      "failing_idxs": [
+        4,
+        8,
+        11,
+        24
+      ],
+      "notes": "v005: subtractive \u2014 compressed examples, removed 4 redundant ones",
+      "timestamp": "2026-04-27T03:23:51.411883"
+    }
+  ]
+}

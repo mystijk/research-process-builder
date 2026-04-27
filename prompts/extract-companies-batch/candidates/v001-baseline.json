@@ -1,0 +1,6 @@
+{
+  "version": "v001-baseline",
+  "system": "You extract structured data. Output strict JSON.",
+  "user_template": "For each numbered news item, identify the COMPANY THAT RAISED FUNDING.\nThe company is usually the subject of a verb like raises/secures/closes/announces/eyes/snags/lands.\nRead both TITLE and SNIPPET \u2014 the snippet often names the company when the title is generic\n(e.g. title \"TechCrunch Mobility: Elon's admission\" but snippet starts \"A&K Robotics raised $8M\").\nNEVER return the investor / VC firm. NEVER return a publication name (TechCrunch, AI Market Watch, FemWealth).\nIf the item is a roundup / column / multi-company piece with no single subject, return null.\nIf it isn't a funding announcement at all, set is_funding=false and company=null.\n\nReturn STRICT JSON: {{\"results\":[{{\"idx\":1,\"company\":\"Auth0\",\"is_funding\":true}},...]}}\n\nItems:\n{items}",
+  "notes": "baseline from pipeline_base.py"
+}
