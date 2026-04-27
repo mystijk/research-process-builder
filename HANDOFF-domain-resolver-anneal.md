@@ -30,31 +30,40 @@
 
 ## What Needs Annealing
 
-### 1. Expand ground truth (most important)
-Current: 35 companies. Need: 80+.
+### 1. Expand ground truth — DONE 2026-04-26 (smashed target)
 
-**How:**
-- Run pipeline on 5 historical dates: `py scripts/series_a_pipeline.py --tbs qdr:w --date 2026-04-20 --skip-enrich`
-- Take the Stage 2 output, manually verify company names
-- Run domain resolver on each, compare to Crunchbase/manual lookup
-- Add to `eval_pipeline.py` KNOWN_GOOD_DOMAINS and BAD_DOMAIN_CASES
+**Shipped:**
+- Harvested 95 rows from production Supabase `funding_discoveries` table.
+- Filtered: encoding-issue rows, URL-format entries, names that look like article headers, www-prefixed domains normalized.
+- Curated 70 new entries → KNOWN_GOOD_DOMAINS now 86 entries (was 16).
+- All 86 pass validate_domain. Eval: 39/39 (100%) → 107/107 (100%).
 
-**Budget:** ~$0.50 (50 searches for 5 days × 10 queries)
+**Skipped from harvest (worth manual review later):**
+- "AI Startup" / "Newsroom" / similar generic-looking names
+- Mosaic 3-way (kept mosaic.pe canonical, mosaicco.com + mosaic.ai are distinct companies)
+- Strider Technologies vs Strider — kept as one entry
 
-### 2. Reduce not_found rate
-Current pipeline returns `not_found` when all 3 tiers fail. The agent fallback (Tier 4) catches most of these but costs ~$0.02/company.
+**Next pass:** harvest again every 2-3 weeks as Supabase grows.
 
-**Anneal approach:**
-- Run `py scripts/series_a_pipeline.py --tbs qdr:w --date 2026-04-21 --domain-agent` (weekly catchup with agent fallback)
-- Compare waterfall-only vs agent results
-- For each case where agent succeeds but waterfall fails, analyze WHY:
-  - Was it a search query construction issue? → improve `_find_domain_serper()` query templates
-  - Was it a blocked domain that shouldn't be blocked? → trim block list
-  - Was it a regex miss in article text? → add pattern to DOMAIN_PATTERNS
-  - Was it an obscure company that needs Crunchbase snippet mining? → boost Crunchbase search weight
-- Patch the waterfall, re-run eval, confirm no regression
+### 2. Reduce not_found rate — DONE 2026-04-26 (root cause + verification)
 
-**Budget:** ~$3.00 (agent calls on ~50 companies + search iterations)
+**Root cause discovered:** OPENAI_API_KEY was None inside `domain_resolver` module. Tier 2 (GPT extract) and Tier 4 (agent fallback) both silently no-op'd, masquerading as "all tiers failed." Module loaded only repo-local dotenv + home dotenv, missed the workspace-root key store. Fixed in same commit.
+
+**Verification on 2026-04-26 stage2 output:**
+
+| Run | Resolved | not_found |
+|---|---|---|
+| Before fix | 1/9 (11%) | 8/9 |
+| After fix | 8/9 (89%) | 1/9 |
+
+The 1 remaining not_found ("Elizabeth Dorman & Megan Gole's Era") was actually a Stage 2 name extraction bug — should have extracted "Era". Fixed via `_clean_extracted_name` possessive-prefix rule.
+
+**Bonus fixes from this run:**
+- Agent fallback now logs every fire/result/error (was silently swallowing exceptions on `except Exception: break`)
+- pipeline_base auto-discovers SHARED_SCRIPTS_PATH if not set
+- "Sam Altman's Worldcoin" / "Founder's Company" possessive pattern handled
+
+**Next pass:** monitor weekly catchup runs for new not_found cases, patch waterfall query templates as patterns emerge.
 
 ### 3. Tighten name extraction (Stage 2) — DONE 2026-04-26
 
@@ -152,9 +161,9 @@ py backfill_domains.py --fix --commit
 
 | Task | Est. Cost |
 |------|-----------|
-| Expand ground truth | $0.50 |
-| Reduce not_found (agent comparison) | $3.00 |
 | ~~Name extraction tightening~~ DONE | $0 (offline) |
+| ~~Expand ground truth~~ DONE (107 cases) | $0 (Supabase harvest) |
+| ~~Reduce not_found~~ DONE (89% resolved) | ~$0.30 (Stage 3 verify) |
 | ~~Cross-day dedup testing~~ DONE | $0 (offline) |
 | ~~Block list expansion~~ DONE | $0 (offline) |
 | Prompt annealing | $2.50 |

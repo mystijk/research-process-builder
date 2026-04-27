@@ -143,6 +143,15 @@ def _clean_extracted_name(name: str) -> str:
     name = PREFIX_STRIP.sub("", name).strip()
     # Strip leading "Startup " on its own
     name = re.sub(r'^Startup\s+', '', name, flags=re.IGNORECASE).strip()
+    # Possessive prefix: "Elizabeth Dorman & Megan Gole's Era" -> "Era",
+    # "Sam Altman's Worldcoin" -> "Worldcoin".
+    # Trigger when prefix has 2+ capitalized words (founder-style possessive).
+    m = re.match(
+        r"^[A-Z][\w'-]+(?:\s+(?:&\s+)?[A-Z][\w'-]+)+\s*'s\s+([A-Z][\w&'-]{1,25}(?:\s+[A-Z][\w&'-]{1,25}){0,2})\s*$",
+        name
+    )
+    if m:
+        name = m.group(1).strip()
     return name
 
 

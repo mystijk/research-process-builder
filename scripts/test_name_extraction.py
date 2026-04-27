@@ -18,6 +18,8 @@ def test_extract():
         ("AI Market Watch's Post - LinkedIn", "", "post slug"),
         ("Warehoused Deal Closing for New Fund Managers", "", "fund managers"),
         ("Korean Startup Weekly News #115", "", "weekly news"),
+        ("Elizabeth Dorman & Megan Gole's Era Raises $11M to Build", "Era", "possessive prefix"),
+        ("Sam Altman's Worldcoin Closes $135M Series C", "Worldcoin", "founder possessive"),
     ]
     print("=== extract_company_name_from_title ===")
     all_pass = True
