@@ -16,12 +16,23 @@ export interface RawResult {
   query_source: string;
 }
 
+export type ConfidenceLevel = "high" | "medium" | "low";
+
+export interface SignalScores {
+  nameQuality: ConfidenceLevel;
+  fundingExplicit: ConfidenceLevel;
+  sourceTier: ConfidenceLevel;
+  composite: ConfidenceLevel;
+  reasons: string[];
+}
+
 export interface CandidateSource {
   url: string;
   domain: string;
   score: number;
   query_source: string;
   title: string;
+  snippet: string;
 }
 
 export interface Candidate {
@@ -33,6 +44,8 @@ export interface Candidate {
   sources: CandidateSource[];
   best_score: number;
   best_source_url: string;
+  confidence?: ConfidenceLevel;
+  confidenceReasons?: string[];
 }
 
 export interface FilteredItem {
@@ -74,6 +87,7 @@ export interface EnrichedRecord {
   score: number;
   discovered_by: string;
   discovered_by_pipeline: string;
+  confidence?: ConfidenceLevel;
 }
 
 export type RoundType = "series_a" | "series_b" | "series_c";

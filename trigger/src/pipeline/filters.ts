@@ -5,6 +5,7 @@ import type {
   FilteredItem,
   Stage2Result,
 } from "./types.js";
+import { scoreConfidence } from "./confidence-scorer.js";
 
 const VC_PATTERNS =
   /\b(Capital|Ventures|Partners|Fund|Investment|Advisors|Management|Sequoia|Andreessen|Bessemer|Greylock|Accel|Lightspeed|GV|YC|a16z|Khosla|NEA|Insight|Tiger Global|Coatue|General Catalyst)\b/i;
@@ -230,6 +231,7 @@ export function scoreAndFilter(rawResults: RawResult[], config: RoundConfig): St
       score,
       query_source: r.query_source ?? "",
       title: title.slice(0, 100),
+      snippet: snippet.slice(0, 200),
     });
 
     if (score > c.best_score) {
@@ -259,6 +261,18 @@ export function scoreAndFilter(rawResults: RawResult[], config: RoundConfig): St
       consumed.add(otherNorm);
     }
     merged.set(norm, primary);
+  }
+
+  for (const c of merged.values()) {
+    const bestSrc = c.sources.reduce(
+      (best, src) => (src.score > best.score ? src : best),
+      c.sources[0]
+    );
+    if (bestSrc) {
+      const scores = scoreConfidence(c.company_name, bestSrc.title, bestSrc.snippet, bestSrc.domain);
+      c.confidence = scores.composite;
+      c.confidenceReasons = scores.reasons;
+    }
   }
 
   const companies = [...merged.values()].sort(

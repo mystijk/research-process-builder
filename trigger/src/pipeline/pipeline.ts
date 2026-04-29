@@ -168,6 +168,7 @@ function buildEnrichedRecord(
     score: company.best_score,
     discovered_by: [...new Set(company.sources.map((s) => s.query_source))].join(","),
     discovered_by_pipeline: pipelineId,
+    confidence: company.confidence,
   };
 }
 
@@ -185,6 +186,7 @@ function buildSkipEnrichRecord(company: Candidate, roundLabel: string, pipelineI
     score: company.best_score,
     discovered_by: [...new Set(company.sources.map((s) => s.query_source))].join(","),
     discovered_by_pipeline: pipelineId,
+    confidence: company.confidence,
   };
 }
 
@@ -340,22 +342,35 @@ export async function runFundingPipeline(
 
   logger.info("Stage 4: Output");
 
+  // Confidence gate — drop LOW, flag MEDIUM for review
+  const highMedium = enriched.filter((r) => r.confidence !== "low");
+  const dropped = enriched.filter((r) => r.confidence === "low");
+  if (dropped.length > 0) {
+    logger.info(`Confidence gate: dropped ${dropped.length} LOW records`, {
+      names: dropped.map((r) => r.company_name),
+    });
+  }
+  const mediumOnly = highMedium.filter((r) => r.confidence === "medium");
+  if (mediumOnly.length > 0) {
+    logger.info(`Medium confidence (review): ${mediumOnly.map((r) => r.company_name).join(", ")}`);
+  }
+
   if (config.dryRun) {
     logger.info("Dry run — skipping Supabase and webhook output");
   } else {
     if (isSupabaseConfigured()) {
       const tableExists = await checkTable(rc.supabaseTable);
       if (tableExists) {
-        const upserted = await pushToSupabase(enriched, config.date, rc.supabaseTable);
-        logger.info(`Supabase: ${upserted}/${enriched.length} upserted to ${rc.supabaseTable}`);
+        const upserted = await pushToSupabase(highMedium, config.date, rc.supabaseTable);
+        logger.info(`Supabase: ${upserted}/${highMedium.length} upserted to ${rc.supabaseTable}`);
       } else {
         logger.warn(`Supabase table ${rc.supabaseTable} not found`);
       }
     }
 
-    const webhookSent = await pushToWebhook(enriched, config.date, rc.webhookUrl, rc.webhookAuthToken);
+    const webhookSent = await pushToWebhook(highMedium, config.date, rc.webhookUrl, rc.webhookAuthToken);
     if (webhookSent > 0) {
-      logger.info(`Webhook: ${webhookSent}/${enriched.length} sent`);
+      logger.info(`Webhook: ${webhookSent}/${highMedium.length} sent`);
     }
   }
 
@@ -368,12 +383,12 @@ export async function runFundingPipeline(
 
   return {
     date: config.date,
-    companyCount: enriched.length,
-    companies: enriched,
+    companyCount: highMedium.length,
+    companies: highMedium,
     stats: {
       rawResults: rawResults.length,
       candidatesAfterFilter: scored.stats.company_count,
-      enrichedCount: enriched.length,
+      enrichedCount: highMedium.length,
       durationMs,
     },
   };
