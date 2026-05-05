@@ -278,7 +278,7 @@ def to_supabase_row(parsed: dict, date_override: str | None = None) -> dict:
         "source_url": parsed.get("source_url", ""),
         "lead_investors": "not_stated",
         "round_reasoning": "not_stated",
-        "discovered_by": "raisingfi",
+        "discovered_by_pipeline": "raisingfi",
         "industry": parsed.get("industry", ""),
         "location": parsed.get("location", ""),
         "source_count": 1,
@@ -332,7 +332,7 @@ def push_to_supabase(rows: list[dict]) -> int:
         try:
             resp = requests.post(
                 f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}"
-                f"?on_conflict=company_name,discovered_date",
+                f"?on_conflict=source_url",
                 headers=supabase_headers(prefer="resolution=merge-duplicates"),
                 json=[row],
                 timeout=15,
