@@ -270,8 +270,9 @@ def main():
 
     if out_path.exists():
         existing = json.loads(out_path.read_text(encoding="utf-8"))
-        done = {r["dev_name"] for r in existing}
+        done = {r["dev_name"] for r in existing if r.get("copy")}
         my_rows = [r for r in my_rows if r["dev_name"] not in done]
+        existing = [r for r in existing if r.get("copy")]
         if not my_rows:
             print(f"Batch {args.batch}: all {batch_size} leads cached, skipping")
             return
