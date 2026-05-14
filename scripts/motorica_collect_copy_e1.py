@@ -84,7 +84,8 @@ def main():
     end_col = col_letter(E1_START_COL_IDX + len(NEW_HEADERS) - 1)
     total_cols = E1_START_COL_IDX + len(NEW_HEADERS)
 
-    expand_grid(total_cols)
+    # grid already expanded on first run; skip to avoid burning quota
+    # expand_grid(total_cols)
 
     values = [NEW_HEADERS]
     for dev in leads:
@@ -99,7 +100,7 @@ def main():
         ])
 
     print(f"Writing {len(values)-1} rows to cols {start_col}-{end_col}...")
-    chunk_size = 10
+    chunk_size = 5
     for i in range(0, len(values), chunk_size):
         chunk = values[i:i + chunk_size]
         row_start = i + 1
@@ -114,7 +115,7 @@ def main():
             {"range": range_str, "majorDimension": "ROWS", "values": chunk},
         )
         print(f"  chunk {i//chunk_size + 1}: rows {row_start}-{row_start + len(chunk) - 1}")
-        time.sleep(1.5)
+        time.sleep(10)
 
     print(f"\nDone. Sheet: https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit")
 

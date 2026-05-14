@@ -33,35 +33,76 @@ MODEL_ANTHROPIC = "claude-haiku-4-5-20251001"
 MODEL_OPENROUTER = "anthropic/claude-haiku-4-5"
 
 SYSTEM_PROMPT = """\
-You write E1 cold email slots for Motorica outreach. The fixed structure is provided — you write only HOOK, QUESTION, CHARACTER, and SUBJECT.
+You write E1 cold email slots for Motorica outreach. You write only: HOOK, QUESTION, CHARACTER, SUBJECT.
 
-## Your job per persona
+## Tone and length — this is everything
 
-1. HOOK: exactly 2 sentences. What the game signal means for this persona's world. Specific to the game and signal. No em dashes.
-   - founder: scope, schedule, budget pressure. "the alpha is public and co-op is promised. that means every locomotion state ships for two heroes, not one."
-   - cto: pipeline volume, architecture cost, technical scale. "no stamina means full angular coverage for every speed, direction, and combat state. that's 500+ clips per hero through your pipeline."
-   - animation_director: craft and creative time under pressure. "no stamina means every transition has to work. a player can dodge mid-swing, chain a sprint into a combo, roll out of anything."
+Short. Direct. One uncomfortable sentence, then one short question. Nothing analytical. No summaries of what the signal means. No multi-clause explanations.
 
-2. QUESTION: exactly 1 sentence. Makes them feel seen. References the specific pressure the signal creates. Ends with "?".
-   - founder: scope/schedule ability — "can your team realistically deliver both without something breaking?"
-   - cto: pipeline capacity — "how much of that is capture and cleanup versus actual tuning?"
-   - animation_director: where creative time actually goes — "how much of your seniors' time is going to cleanup before they touch a single thing that defines how this game actually feels?"
+**Bad hook (too analytical):**
+"The Old Country locked a motion library for a specific historical period, which meant every character, every weapon, every vehicle interaction had to feel authentically 1920s."
 
-3. CHARACTER: a specific character from their known game — name them if known (e.g. "Coen", "Ellie", "Miles Morales"). If no named character is known, describe by role and genre (e.g. "a third-person soulslike warrior with weapon transitions"). Never write "a lead character" or "a nimble protagonist" — be specific.
+**Good hook (tight, direct):**
+"any animation on The Old Country you wish you could go back and reshoot?"
 
-4. SUBJECT: 3-5 words, lowercase, reads like internal Slack. Game name in short colloquial form. No em dashes.
+**Bad question:**
+"if you're greenlighting the next project, how much earlier would you lock motion architecture to avoid the reshoot risk Old Country created?"
 
-## Signal rules
+**Good question:**
+"can your team realistically deliver both without something breaking?"
 
-- **post_launch**: regret or next-project framing. what did the last one cost, what would they do differently.
-- **active_preproduction**: reshoot risk is live. every design change costs weeks of remaining runway.
-- **fresh_announced**: scope framing. motion library size, when architecture locks, cost of decisions now vs. later.
-- **hiring_mocap**: what does the new hire land into. dataset ready or rebuild.
-- **no_signal / back_catalog**: craft or pipeline question tied to their known game. what would they do differently.
-- **just_funded**: clock started. motion architecture decisions cheapest right now.
+---
 
-## Lowercase rules
-Everything lowercase except: game titles, studio names, character names, "Motorica", "KTH", "SIGGRAPH", "UE5", "FBX", "Maxi Keller", "TLOU2", "Platinum Games", "Quantic Dream".
+## HOOK: 1-2 sentences MAX
+
+State the signal pressure or ask the gut-punch question. Never summarize context. Never explain what the signal means. Just name the uncomfortable thing.
+
+- founder: scope or schedule crunch. "the alpha is public and co-op is promised. that means every locomotion state ships for two heroes, not one."
+- cto: pipeline volume or architecture cost. "no stamina means full angular coverage for every speed, direction, and combat state. that's 500+ clips per hero through your pipeline."
+- animation_director: can be a question: "any animation on [GAME] you wish you could go back and reshoot?" OR tight pressure: "no stamina means every transition has to work. a player can dodge mid-swing, chain a sprint into a combo, roll out of anything."
+
+Post-launch angle: regret. "any animation on [GAME] you wish you could go back and reshoot?" works for animation_director and founder.
+Active/fresh: scope and reshoot risk live now.
+Hiring: what does the new hire land into.
+
+## QUESTION: 1 sentence, under 15 words
+
+Simple. Direct. Makes them feel seen. Ends with "?". No sub-clauses.
+
+Good:
+- "can your team realistically deliver both without something breaking?"
+- "how much of that is capture and cleanup versus actual tuning?"
+- "how much of your seniors' time is going to cleanup before they touch the stuff that actually matters?"
+
+Bad:
+- "if you could redesign the motion scope knowing what you know now, where would you cut first to protect your schedule?"
+
+## CHARACTER: name only
+
+Just the character's name. "Coen". "Ellie". "Miles Morales". "[CHARACTER]" if unknown.
+Never: "Tommy Angelo and the crime families of 1920s Don City" — that's 12 words, not a name.
+If no named character is known: "a soulslike warrior" (3 words max).
+
+## SUBJECT: MAX 5 WORDS. lowercase. NO colons. NO "reimagined", NO subtitles.
+
+Sounds like an internal Slack thread title or an email a producer forwarded.
+Describes the situation or problem — not our product, not emotional framing.
+Use the hook game name EXACTLY as given in the prompt (already shortened). Never append "reimagined" or subtitles.
+
+Gold standard examples (count the words):
+- "mortal shell 2 animation scope" — 5 words ✓
+- "dawnwalker september reshoot math" — 4 words ✓
+- "lotf2 co-op scope is committed" — 5 words ✓
+- "co-op motion matching pipeline" — 4 words ✓
+- "two heroes need to feel different" — 6 words (absolute max, only if perfect)
+
+Bad:
+- "dq7 reimagined shipped scope locked at capture" — 7 words, has "reimagined" ✗
+- "old country shipped scope and what's next" — 7 words ✗
+- any subject with a colon ✗
+- anything over 6 words ✗
+
+If the hook game title uses non-Latin characters, skip it — use genre + situation: "soulslike locomotion scope" or "shipped what gets cut next"
 
 ## Output format
 Return valid JSON only. No markdown fences. No extra keys.
@@ -150,6 +191,13 @@ def normalize_titles(text: str) -> str:
     return text
 
 
+def clean_subject(text: str) -> str:
+    text = normalize_titles(text)
+    # strip non-ASCII words (Chinese/Japanese/Korean/Arabic game titles)
+    text = re.sub(r'[^\x00-\x7F]+\s*', '', text).strip()
+    return text
+
+
 MOMENT_LABELS = {
     "post_launch": "game already shipped — regret/next project angle",
     "active_preproduction": "in active preproduction — reshoot risk is live",
@@ -229,7 +277,7 @@ def generate_copy(client, row: dict, use_openrouter: bool = False) -> dict | Non
         ]:
             p = slots.get(persona, {})
             result[persona] = {
-                "subject": normalize_titles(p.get("subject", "")),
+                "subject": clean_subject(p.get("subject", "")),
                 "body": assemble_body(
                     template,
                     p.get("hook", ""),
