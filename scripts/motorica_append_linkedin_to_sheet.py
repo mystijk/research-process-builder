@@ -7,7 +7,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = Path(__file__).resolve().parent.parent
 GWS = ["node", r"C:\Users\mitch\AppData\Roaming\npm\node_modules\@googleworkspace\cli\run-gws.js"]
 TOTAL_BATCHES = 49
-SHEET_ID = "1BKfdq2RH3RGckQllwaV5Vjn34INQh50gi4TaeYT1v98"
+SHEET_ID = "1CoumzCXPyVg9WZcRokeuOWtTpqOJrNuO604y4x09m-0"
 TAB = "Leads + E2 Copy"
 
 # E2 sheet has 16 lead cols + 6 copy cols = 22 cols (A-V). LinkedIn goes at W.

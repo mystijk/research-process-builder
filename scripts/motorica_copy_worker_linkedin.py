@@ -114,8 +114,12 @@ GAME_SHORTS = {
     "DOOM: The Dark Ages": "Dark Ages",
     "DOOM Eternal": "DOOM Eternal",
     "Mafia: The Old Country": "The Old Country",
+    "The Last of Us Part II Remastered": "TLOU2",
+    "The Last of Us™ Part II Remastered": "TLOU2",
     "The Last of Us Part II": "TLOU2",
+    "The Last of Us™ Part II": "TLOU2",
     "The Last of Us Part I": "TLOU1",
+    "The Last of Us™ Part I": "TLOU1",
     "Lords of the Fallen 2": "LOTF2",
     "Lords of the Fallen": "LOTF",
     "Resident Evil Village": "RE Village",
@@ -210,10 +214,11 @@ def generate_copy(client, row: dict, use_openrouter: bool = False) -> dict | Non
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
         result = json.loads(raw)
-        # strip em dashes just in case
         for persona in result:
             if isinstance(result[persona], str):
                 result[persona] = re.sub(r"\s*—\s*", ", ", result[persona])
+                for formal, short in sorted(GAME_SHORTS.items(), key=lambda x: -len(x[0])):
+                    result[persona] = re.sub(re.escape(formal), short, result[persona], flags=re.IGNORECASE)
         return result
     except Exception as e:
         print(f"  ERROR {row.get('dev_name')}: {e}", file=sys.stderr)

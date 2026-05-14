@@ -119,8 +119,12 @@ GAME_SHORTS = {
     "DOOM: The Dark Ages": "Dark Ages",
     "DOOM Eternal": "DOOM Eternal",
     "Mafia: The Old Country": "The Old Country",
+    "The Last of Us Part II Remastered": "TLOU2",
+    "The Last of Us™ Part II Remastered": "TLOU2",
     "The Last of Us Part II": "TLOU2",
+    "The Last of Us™ Part II": "TLOU2",
     "The Last of Us Part I": "TLOU1",
+    "The Last of Us™ Part I": "TLOU1",
     "Lords of the Fallen 2": "LOTF2",
     "Lords of the Fallen": "LOTF",
     "Resident Evil Village": "RE Village",
@@ -183,8 +187,15 @@ def build_prompt(row: dict) -> str:
     )
 
 
+def normalize_titles(text: str) -> str:
+    for formal, short in sorted(GAME_SHORTS.items(), key=lambda x: -len(x[0])):
+        text = re.sub(re.escape(formal), short, text, flags=re.IGNORECASE)
+    return text
+
+
 def assemble_body(template: str, bridge: str, character: str) -> str:
     body = template.format(bridge=bridge.strip(), character=character.strip())
+    body = normalize_titles(body)
     return re.sub(r'\s*—\s*', ', ', body)
 
 
