@@ -106,6 +106,46 @@ Return valid JSON only. No markdown fences. No extra keys.
 }
 """
 
+GAME_SHORTS = {
+    "DRAGON QUEST VII Reimagined": "DQ7",
+    "DRAGON QUEST": "Dragon Quest",
+    "Marvel's Spider-Man 2": "Spider-Man 2",
+    "Marvel's Spider-Man": "Spider-Man",
+    "DOOM: The Dark Ages": "Dark Ages",
+    "DOOM Eternal": "DOOM Eternal",
+    "Mafia: The Old Country": "The Old Country",
+    "The Last of Us Part II": "TLOU2",
+    "The Last of Us Part I": "TLOU1",
+    "Lords of the Fallen 2": "LOTF2",
+    "Lords of the Fallen": "LOTF",
+    "Resident Evil Village": "RE Village",
+    "Resident Evil 4": "RE4",
+    "Resident Evil Requiem": "RE Requiem",
+    "Blood of Dawnwalker": "Dawnwalker",
+    "Mortal Shell 2": "Mortal Shell 2",
+}
+
+
+def colloquial(title: str) -> str:
+    """Return the natural short form a developer would use in conversation."""
+    if not title:
+        return title
+    if title in GAME_SHORTS:
+        return GAME_SHORTS[title]
+    # All-caps title → title-case it
+    if title == title.upper() and len(title) > 3:
+        title = title.title()
+    # Strip subtitle after colon if main title is recognizable (keep if subtitle is the famous part)
+    if ": " in title:
+        main, sub = title.split(": ", 1)
+        # Keep subtitle if main is generic (e.g. "Mafia" keeps "The Old Country")
+        generic_mains = {"mafia", "call of duty", "far cry", "assassin's creed", "halo", "gears"}
+        if main.lower() in generic_mains:
+            return sub  # "The Old Country" reads better
+        return main  # "Sniper Elite" drops ": Resistance" for brevity
+    return title
+
+
 MOMENT_LABELS = {
     "post_launch": "game already shipped — regret/cost angle",
     "active_preproduction": "in active preproduction — pressure angle",
@@ -126,21 +166,23 @@ def build_prompt(row: dict) -> str:
     job_title = row.get("job_title", "") or ""
     signal_type = row.get("game_signal_type", "") or ""
     hook_game = signal_title if signal_title and moment in ("fresh_announced", "active_preproduction") else game
+    hook_game_short = colloquial(hook_game or game)
+    game_short = colloquial(game)
 
     lines = [
         f"Studio: {dev}",
         f"Situation: {MOMENT_LABELS.get(moment, moment)}",
-        f"Known game (portfolio): {game or 'none'}",
-        f"New/announced game: {signal_title or 'none'}",
-        f"Hook game: {hook_game or game or 'none'}",
+        f"Known game (portfolio): {game_short or 'none'}",
+        f"New/announced game: {colloquial(signal_title) or 'none'}",
+        f"Hook game (use this exact name in copy): {hook_game_short or game_short or 'none'}",
         f"Hiring signal: {job_title or 'none'}",
         f"Additional context: {note or 'none'}",
     ]
     lines.append("")
     lines.append(
         "Write one single-line LinkedIn question per persona. "
-        "Must reference the specific game or hire signal. "
-        "Lowercase. No em dashes. Ends with '?'. No Motorica mention. No greeting."
+        "Use the 'Hook game' name exactly as given — it is already the natural short form a developer would say. "
+        "Lowercase except game titles. No em dashes. Ends with '?'. No Motorica mention. No greeting."
     )
     return "\n".join(lines)
 

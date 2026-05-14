@@ -111,6 +111,41 @@ TEMPLATE_FOUNDER = (
 )
 
 
+GAME_SHORTS = {
+    "DRAGON QUEST VII Reimagined": "DQ7",
+    "DRAGON QUEST": "Dragon Quest",
+    "Marvel's Spider-Man 2": "Spider-Man 2",
+    "Marvel's Spider-Man": "Spider-Man",
+    "DOOM: The Dark Ages": "Dark Ages",
+    "DOOM Eternal": "DOOM Eternal",
+    "Mafia: The Old Country": "The Old Country",
+    "The Last of Us Part II": "TLOU2",
+    "The Last of Us Part I": "TLOU1",
+    "Lords of the Fallen 2": "LOTF2",
+    "Lords of the Fallen": "LOTF",
+    "Resident Evil Village": "RE Village",
+    "Resident Evil 4": "RE4",
+    "Resident Evil Requiem": "RE Requiem",
+    "Blood of Dawnwalker": "Dawnwalker",
+}
+
+
+def colloquial(title: str) -> str:
+    if not title:
+        return title
+    if title in GAME_SHORTS:
+        return GAME_SHORTS[title]
+    if title == title.upper() and len(title) > 3:
+        title = title.title()
+    if ": " in title:
+        main, sub = title.split(": ", 1)
+        generic_mains = {"mafia", "call of duty", "far cry", "assassin's creed", "halo", "gears"}
+        if main.lower() in generic_mains:
+            return sub
+        return main
+    return title
+
+
 MOMENT_LABELS = {
     "post_launch": "game already shipped — regret/next project angle",
     "active_preproduction": "in active preproduction — reshoot risk is live",
@@ -131,17 +166,19 @@ def build_prompt(row: dict) -> str:
     signal_type = row.get("game_signal_type", "") or ""
     hook_game = signal_title if signal_title and moment in ("fresh_announced", "active_preproduction") else game
     moment_label = MOMENT_LABELS.get(moment, moment)
+    hook_short = colloquial(hook_game or game)
+    game_short = colloquial(game)
 
     return (
         f"Studio: {dev}\n"
         f"Situation: {moment_label}\n"
-        f"Portfolio game (mocap): {game or 'none'}\n"
-        f"New/announced game: {signal_title or 'none'}\n"
-        f"Hook game: {hook_game or game or 'their portfolio'}\n"
+        f"Portfolio game (mocap): {game_short or 'none'}\n"
+        f"New/announced game: {colloquial(signal_title) or 'none'}\n"
+        f"Hook game (use this exact name in copy): {hook_short or game_short or 'their portfolio'}\n"
         f"Additional context: {note or 'none'}\n"
         f"Signal subtype: {signal_type or 'none'}\n\n"
         f"Write BRIDGE and CHARACTER for all 3 personas.\n"
-        f"BRIDGE: one natural sentence, specific to this studio. No em dashes (use comma or period). "
+        f"BRIDGE: one natural sentence using the Hook game name as given. No em dashes. "
         f"No internal labels or jargon. Lowercase except proper nouns and game titles."
     )
 
