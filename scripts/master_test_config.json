@@ -531,7 +531,7 @@
         {
           "id": "ch9_customer_spotlight",
           "template": "{{company_name}} \"customer spotlight\" OR \"customer story\" OR \"case study\" {{category}}"
-        },
+        }
       ]
     },
     {
@@ -585,7 +585,7 @@
         {
           "id": "ch6_ecosystem_named",
           "template": "{{company_name}} integrates Salesforce OR HubSpot OR Slack OR Google OR Microsoft OR Stripe"
-        },
+        }
       ]
     },
     {

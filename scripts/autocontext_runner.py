@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -29,6 +30,8 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
+
+import requests
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = SCRIPT_DIR.parent
@@ -39,9 +42,14 @@ PROJECT_DIR = SCRIPT_DIR.parent
 
 _ac_src_env = os.environ.get("AUTOCONTEXT_SRC_PATH")
 if not _ac_src_env:
-    print("ERROR: AUTOCONTEXT_SRC_PATH env var not set.")
-    print("Set it to the autocontext/src/autocontext directory.")
-    sys.exit(1)
+    # Auto-discover: sibling autocontext repo in workspace root
+    _candidate = PROJECT_DIR.parent / "autocontext" / "autocontext" / "src" / "autocontext"
+    if _candidate.exists():
+        _ac_src_env = str(_candidate)
+    else:
+        print("ERROR: AUTOCONTEXT_SRC_PATH env var not set and auto-discovery failed.")
+        print(f"  Checked: {_candidate}")
+        sys.exit(1)
 AC_SRC = Path(_ac_src_env)
 
 
@@ -285,51 +293,109 @@ class SearchPatternRunner:
         return total
 
     def _propose_mutations(self, state: dict) -> list[dict]:
-        """Use the task's revision logic to propose mutations.
-
-        In the full autocontext loop, this would call an LLM. For now,
-        we use a heuristic approach based on category analysis + playbook.
-        The revise_output() method builds the prompt; we return it for
-        the caller to send to an LLM, or we apply simple heuristics.
-        """
+        """Propose mutations for worst-scoring categories. LLM-first, heuristic fallback."""
         result = self.task.evaluate_output("", state)
         dim_scores = result.dimension_scores
 
         if not dim_scores:
             return []
 
-        # Filter to target category if specified
-        if self.target_category:
-            candidates = {k: v for k, v in dim_scores.items() if k == self.target_category}
-        else:
-            candidates = dim_scores
+        candidates = (
+            {k: v for k, v in dim_scores.items() if k == self.target_category}
+            if self.target_category else dim_scores
+        )
 
-        # Pick worst 3
         worst = sorted(candidates.items(), key=lambda x: x[1])[:3]
-
         config = state.get("config", {})
-        mutations = []
 
+        mutations = self._propose_mutations_llm(state, worst, config)
+        if mutations:
+            return mutations
+
+        # Heuristic fallback
+        all_mutations = []
         for cat_id, score in worst:
-            # Get existing variant IDs to avoid collisions
-            existing_ids = set()
-            for cat in config.get("categories", []):
-                if cat["id"] == cat_id:
-                    existing_ids = {v["id"] for v in cat.get("variants", [])}
-                    break
+            existing_ids = {
+                v["id"]
+                for cat in config.get("categories", [])
+                if cat["id"] == cat_id
+                for v in cat.get("variants", [])
+            }
+            all_mutations.extend(self._heuristic_mutations(cat_id, score, existing_ids))
+        return all_mutations
 
-            # Apply heuristic mutations based on playbook patterns
-            new_variants = self._heuristic_mutations(cat_id, score, existing_ids)
-            mutations.extend(new_variants)
+    def _propose_mutations_llm(self, state: dict, worst: list[tuple], config: dict) -> list[dict]:
+        """Call Claude Haiku to propose new search query mutations."""
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            return []
 
-        return mutations
+        cat_context = []
+        for cat_id, score in worst:
+            cat_data = next((c for c in config.get("categories", []) if c["id"] == cat_id), {})
+            variants = cat_data.get("variants", [])
+            cat_context.append({
+                "category_id": cat_id,
+                "gt_score": round(score, 3),
+                "current_variants": [{"id": v["id"], "template": v["template"]} for v in variants],
+            })
+
+        playbook_text = self.playbook.read()
+
+        prompt = f"""You are optimizing Google search queries for a B2B company research tool.
+Each query finds specific intelligence about a company. Queries use these template variables:
+- {{{{company_name}}}} — company name (may be disambiguated, e.g. "Clay GTM")
+- {{{{domain}}}} — company domain (e.g. "clay.com")
+- {{{{current_year}}}} — current year (never hardcode)
+
+These categories have low GT accuracy and need better patterns:
+{json.dumps(cat_context, indent=2)}
+
+Playbook (proven and failed patterns):
+{playbook_text[:2000] if playbook_text else "No playbook yet."}
+
+Rules for effective patterns:
+- OR operators combine synonyms into one search (highest leverage)
+- site: targets specific platforms with structured data (stackshare.io, rocketreach.co, crunchbase.com, g2.com, zoominfo.com, wellfound.com, builtwith.com)
+- site:{{{{domain}}}} often outperforms name search for company-specific pages
+- Avoid generic queries — be specific about what you're looking for
+- Do NOT repeat any template already in current_variants
+
+Propose 2-3 NEW templates per category. Return ONLY valid JSON:
+{{"mutations": [{{"category_id": "...", "variant_id": "llm_...", "template": "..."}}]}}"""
+
+        try:
+            resp = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-haiku-4-5-20251001",
+                    "max_tokens": 1000,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            content = resp.json()["content"][0]["text"].strip()
+            m = re.search(r'\{[\s\S]*\}', content)
+            if m:
+                data = json.loads(m.group(0))
+                mutations = data.get("mutations", [])
+                if mutations:
+                    print(f"  [LLM] proposed {len(mutations)} mutations via Claude Haiku")
+                    return mutations
+        except Exception as e:
+            print(f"  [LLM mutation] failed: {e} — falling back to heuristics")
+
+        return []
 
     def _heuristic_mutations(self, cat_id: str, score: float,
                               existing_ids: set) -> list[dict]:
-        """Generate mutations based on proven patterns from the playbook."""
-        mutations = []
-
-        # Strategy 1: Aggregator site targeting (if not already tried)
+        """Fallback: hardcoded aggregator patterns when LLM unavailable."""
         aggregator_map = {
             "tech_stack": [
                 ("ac_stackshare", "site:stackshare.io \"{{company_name}}\" tech stack"),
@@ -365,16 +431,16 @@ class SearchPatternRunner:
             ],
         }
 
-        for var_id, template in aggregator_map.get(cat_id, []):
-            if var_id not in existing_ids:
-                mutations.append({
-                    "category_id": cat_id,
-                    "variant_id": var_id,
-                    "template": template,
-                    "reasoning": f"Aggregator/site-targeted for {cat_id} (heuristic)",
-                })
-
-        return mutations
+        return [
+            {
+                "category_id": cat_id,
+                "variant_id": var_id,
+                "template": template,
+                "reasoning": f"heuristic fallback for {cat_id}",
+            }
+            for var_id, template in aggregator_map.get(cat_id, [])
+            if var_id not in existing_ids
+        ]
 
     def run(self) -> None:
         """Execute the optimization loop."""

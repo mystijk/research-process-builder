@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -26,9 +27,13 @@ PROJECT_DIR = SCRIPT_DIR.parent
 
 _ac_src_env = os.environ.get("AUTOCONTEXT_SRC_PATH")
 if not _ac_src_env:
-    print("ERROR: AUTOCONTEXT_SRC_PATH env var not set.")
-    print("Set it to the autocontext/src/autocontext directory.")
-    sys.exit(1)
+    _candidate = PROJECT_DIR.parent / "autocontext" / "autocontext" / "src" / "autocontext"
+    if _candidate.exists():
+        _ac_src_env = str(_candidate)
+    else:
+        print("ERROR: AUTOCONTEXT_SRC_PATH env var not set and auto-discovery failed.")
+        print(f"  Checked: {_candidate}")
+        sys.exit(1)
 AC_SRC = Path(_ac_src_env)
 
 
