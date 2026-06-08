@@ -2,7 +2,7 @@
   "company": "Stripe",
   "domain": "stripe.com",
   "tier": 1,
-  "verified_date": "2026-03-13",
+  "verified_date": "2026-06-07",
   "categories": {
     "founders_ceo": {
       "names": ["Patrick Collison", "John Collison"],
@@ -11,21 +11,23 @@
       "sources": ["wikipedia.org", "stripe.com"]
     },
     "c_suite_technical": {
-      "names": ["Rahul Patil"],
+      "names": ["David Singleton"],
       "titles": ["Chief Technology Officer"],
       "confidence": "verified",
-      "sources": ["financemagnates.com", "siliconrepublic.com"]
+      "sources": ["stripe.com", "clay.com"],
+      "previous": ["Rahul Patil (verified 2026-03-13)"]
     },
     "c_suite_commercial": {
       "names": [
         "Steffan Tomlinson",
         "Jeff Titterton",
         "William Alvarado",
-        "Tyler Bryson"
+        "Eileen O'Mara"
       ],
-      "titles": ["CFO", "CMO", "Chief Business Officer", "CRO Americas"],
+      "titles": ["CFO", "CMO", "Chief Business Officer", "CRO"],
       "confidence": "verified",
-      "sources": ["stripe.com", "craft.co"]
+      "sources": ["stripe.com", "clay.com"],
+      "previous": ["Tyler Bryson (CRO Americas, verified 2026-03-13)"]
     },
     "funding_financial": {
       "total_raised": "$9.81B",
