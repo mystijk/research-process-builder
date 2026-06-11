@@ -52,6 +52,9 @@ function toRow(record: EnrichedRecord, dateStr: string) {
     round_reasoning: record.round_reasoning,
     article_text: record.article_text,
     discovered_by_pipeline: record.discovered_by_pipeline,
+    amount_raised_usd: record.amount_raised_usd ?? null,
+    amount_raised_currency: record.amount_raised_currency ?? null,
+    funding_date: record.funding_date ?? null,
     source_count: record.source_count,
     score: record.score,
     pipeline_version: "1.0-ts",
@@ -222,6 +225,33 @@ export async function pushToSupabase(
   }
 
   return upserted;
+}
+
+export async function patchRowBySourceUrl(
+  tableName: string,
+  sourceUrl: string,
+  patch: Record<string, unknown>
+): Promise<boolean> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return false;
+  try {
+    const resp = await fetch(
+      `${SUPABASE_URL}/rest/v1/${tableName}?source_url=eq.${encodeURIComponent(sourceUrl)}`,
+      {
+        method: "PATCH",
+        headers: headers(),
+        body: JSON.stringify(patch),
+        signal: AbortSignal.timeout(15_000),
+      }
+    );
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      console.error(`Supabase patch failed for ${sourceUrl}: ${resp.status} ${errText.slice(0, 200)}`);
+    }
+    return resp.ok;
+  } catch (err) {
+    console.error(`Supabase patch error for ${sourceUrl}:`, err instanceof Error ? err.message : err);
+    return false;
+  }
 }
 
 export async function pushRaisingFiRows<T extends Record<string, unknown>>(

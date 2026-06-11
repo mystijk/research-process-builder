@@ -4,7 +4,7 @@ function buildExtractionPrompt(roundLabel: string, sentinel: string): string {
   return `Extract ${roundLabel} funding data from this article.
 
 Return exactly this JSON:
-{"company_name": "...", "company_domain": "...", "amount_raised": "...", "lead_investors": "...", "round_reasoning": "...", "industry": "...", "location": "..."}
+{"company_name": "...", "company_domain": "...", "amount_raised": "...", "lead_investors": "...", "round_reasoning": "...", "industry": "...", "location": "...", "funding_date": "YYYY-MM-DD"}
 
 Rules:
 - company_name = the company that RAISED money (NOT the investor/VC)
@@ -14,6 +14,7 @@ Rules:
 - round_reasoning = why they raised / what funds are for, 1-2 sentences. "not_stated" if unknown
 - industry = primary industry/vertical (e.g. "AI", "fintech", "healthtech", "cybersecurity", "SaaS"). "not_stated" if unclear
 - location = company HQ city and country (e.g. "San Francisco, US", "London, UK", "Tel Aviv, Israel"). "not_stated" if unknown
+- funding_date = date the funding was announced, YYYY-MM-DD format. Look for explicit dates in the article. "not_stated" if no date found
 - If this is NOT actually a ${roundLabel} funding announcement, set company_name to "${sentinel}"
 
 ---

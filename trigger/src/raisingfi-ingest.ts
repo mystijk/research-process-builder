@@ -1,5 +1,6 @@
 import { schedules, logger } from "@trigger.dev/sdk";
 import { isSupabaseConfigured, checkTable, pushRaisingFiRows } from "./pipeline/supabase.js";
+import { normalizeAmount } from "./pipeline/normalize-amount.js";
 
 const X_BEARER_TOKEN = process.env.X_BEARER_TOKEN ?? "";
 const X_API_BASE = "https://api.x.com/2";
@@ -32,7 +33,7 @@ interface Tweet {
 }
 
 interface FundingRow {
-  [key: string]: string | number;
+  [key: string]: string | number | null;
   discovered_date: string;
   company_name: string;
   company_domain: string;
@@ -123,12 +124,16 @@ function parseTweet(tweet: Tweet): FundingRow | null {
   const domain = resolveCompanyDomain(websiteTco, tweet.entities, name);
 
   const discoveredDate = tweet.created_at ? tweet.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const amountRaw = parsed.amount_raised ?? "";
+  const norm = normalizeAmount(amountRaw);
 
   return {
     discovered_date: discoveredDate,
     company_name: name,
     company_domain: domain,
-    amount_raised: parsed.amount_raised ?? "",
+    amount_raised: amountRaw,
+    amount_raised_usd: norm?.value_usd ?? null,
+    amount_raised_currency: norm?.currency ?? null,
     round_type: parsed.round_type ?? "",
     source_url: `https://x.com/${RAISINGFI_USERNAME}/status/${tweet.id}`,
     lead_investors: "not_stated",

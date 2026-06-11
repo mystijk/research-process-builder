@@ -1,6 +1,7 @@
-import { logger, wait } from "@trigger.dev/sdk";
+import { logger } from "@trigger.dev/sdk";
 import type { ProductLaunch, ProductLaunchPipelineResult } from "./product-launch-types.js";
-import { fetchUrl } from "./spider.js";
+import { fetchUrl } from "./firecrawl.js";
+import { day0BlitzEnrich } from "./enrich-company.js";
 
 // ---------------------------------------------------------------------------
 // Env
@@ -17,8 +18,6 @@ const SUPABASE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   process.env.SUPABASE_ANON_KEY ??
   "";
-const CLAY_WEBHOOK_URL = process.env.CLAY_COMPANY_ENRICH_WEBHOOK ?? process.env.CLAY_GAME_SIGNALS_WEBHOOK ?? "";
-const CLAY_CALLBACK_URL = process.env.CLAY_COMPANY_ENRICH_CALLBACK_URL ?? "https://clay-game-callback.leadgrowai.workers.dev";
 
 // ---------------------------------------------------------------------------
 // Types (internal)
@@ -611,135 +610,27 @@ async function stage3Push(products: ClassifiedProduct[], dateStr: string): Promi
 }
 
 // ---------------------------------------------------------------------------
-// Stage 4: Clay enrichment
+// Stage 4: Company enrichment (Blitz day-0 — misses retried later by DiscoLike)
 // ---------------------------------------------------------------------------
 
-interface ClayEnrichmentResult {
-  product_name: string;
-  enriched: boolean;
-  data: Record<string, unknown> | null;
-}
+async function stage4Enrich(products: ClassifiedProduct[]): Promise<number> {
+  const targets = products
+    .filter((p) => p.maker_website)
+    .map((p) => ({
+      companyName: p.company_name ?? p.product_name,
+      domain: p.maker_website as string,
+      sourceUrl: p.ph_url,
+      knownLinkedin: p.linkedin_url,
+    }));
 
-async function stage4ClayEnrich(products: ClassifiedProduct[]): Promise<ClayEnrichmentResult[]> {
-  if (!CLAY_WEBHOOK_URL || !CLAY_CALLBACK_URL) {
-    logger.warn("Clay not configured — skipping enrichment");
-    return [];
+  if (targets.length === 0) {
+    logger.info("No products with maker_website — skipping enrichment");
+    return 0;
   }
 
-  const enrichable = products.filter((p) => p.maker_website);
-  if (enrichable.length === 0) {
-    logger.info("No products with maker_website — skipping Clay");
-    return [];
-  }
-
-  logger.info("Stage 4: Clay enrichment", { count: enrichable.length });
-
-  // Create all tokens and fire all webhooks in parallel
-  const pending = await Promise.all(
-    enrichable.map(async (product) => {
-      try {
-        const token = await wait.createToken({ timeout: "5m" });
-        const resp = await fetch(CLAY_WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            _callback_id: token.id,
-            _callback_url: `${CLAY_CALLBACK_URL}/${token.id}`,
-            "Company Name": product.company_name ?? product.product_name,
-            "Product Name": product.product_name,
-            "Company Website": product.maker_website,
-            "Company LinkedIn": product.linkedin_url ?? null,
-            "Source": "product_hunt",
-            "PH URL": product.ph_url,
-          }),
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (!resp.ok) {
-          logger.warn(`Clay push failed for ${product.product_name}: ${resp.status}`);
-          return { product_name: product.product_name, token: null };
-        }
-        return { product_name: product.product_name, token };
-      } catch (e) {
-        logger.warn(`Clay error for ${product.product_name}: ${e instanceof Error ? e.message : String(e)}`);
-        return { product_name: product.product_name, token: null };
-      }
-    })
-  );
-
-  const fired = pending.filter((p) => p.token).length;
-  logger.info(`Stage 4: fired ${fired}/${enrichable.length} webhooks — waiting for all callbacks in parallel`);
-
-  // Wait for all tokens simultaneously
-  const settled = await Promise.all(
-    pending.map(async (p) => {
-      if (!p.token) return { product_name: p.product_name, enriched: false, data: null };
-      const result = await wait.forToken<Record<string, unknown>>(p.token).catch(() => null);
-      if (result?.ok) {
-        logger.info(`Clay enrichment received: ${p.product_name}`, { enrichment: result.output });
-        return { product_name: p.product_name, enriched: true, data: result.output as Record<string, unknown> };
-      }
-      logger.warn(`Clay enrichment timeout: ${p.product_name}`);
-      return { product_name: p.product_name, enriched: false, data: null };
-    })
-  );
-
-  const enrichedCount = settled.filter((r) => r.enriched).length;
-  logger.info("Stage 4 complete", { total: settled.length, enriched: enrichedCount });
-  return settled;
-}
-
-async function updateSupabaseWithEnrichment(
-  enrichments: ClayEnrichmentResult[],
-  products: ClassifiedProduct[],
-): Promise<number> {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return 0;
-
-  const TABLE = "product_launches";
-  let updated = 0;
-
-  for (const e of enrichments) {
-    if (!e.enriched || !e.data) continue;
-
-    const product = products.find((p) => p.product_name === e.product_name);
-    if (!product) continue;
-
-    const patch: Record<string, unknown> = {};
-    if (e.data["EmployeeCount"]) patch["employee_count"] = e.data["EmployeeCount"];
-    if (e.data["CompanyIndustry"]) patch["industry"] = e.data["CompanyIndustry"];
-    if (e.data["CompanyLocation"]) patch["company_location"] = e.data["CompanyLocation"];
-    if (e.data["Description"]) patch["company_description"] = e.data["Description"];
-    if (e.data["CompanyFollowers"]) patch["linkedin_followers"] = e.data["CompanyFollowers"];
-
-    if (Object.keys(patch).length === 0) continue;
-
-    try {
-      const resp = await fetch(
-        `${SUPABASE_URL}/rest/v1/${TABLE}?source_url=eq.${encodeURIComponent(product.ph_url)}`,
-        {
-          method: "PATCH",
-          headers: supabaseHeaders(),
-          body: JSON.stringify(patch),
-          signal: AbortSignal.timeout(15_000),
-        },
-      );
-      if (resp.ok) {
-        updated++;
-      } else {
-        logger.error("Supabase enrichment update failed", {
-          product: e.product_name,
-          status: resp.status,
-        });
-      }
-    } catch (err) {
-      logger.error("Supabase enrichment update error", {
-        product: e.product_name,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  logger.info("Enrichment updates written to Supabase", { updated });
-  return updated;
+  logger.info("Stage 4: Blitz enrichment", { count: targets.length });
+  const { enriched } = await day0BlitzEnrich("product_launches", targets);
+  return enriched;
 }
 
 // ---------------------------------------------------------------------------
@@ -785,9 +676,8 @@ export async function runPhLaunchPipeline(options: {
   // Stage 3: push to Supabase
   const upserted = await stage3Push(classified, dateStr);
 
-  // Stage 4: Clay enrichment (long wait — Clay can take minutes)
-  const enrichments = await stage4ClayEnrich(classified);
-  const enrichUpdated = await updateSupabaseWithEnrichment(enrichments, classified);
+  // Stage 4: company enrichment (Blitz day-0)
+  const enrichUpdated = await stage4Enrich(classified);
 
   const durationMs = Date.now() - start;
   logger.info("PH launch pipeline complete", {

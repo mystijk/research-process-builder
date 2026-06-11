@@ -4,15 +4,15 @@
   "description": "Trigger.dev v3 scheduled tasks for research pipelines (Series A Daily Monitor, etc.)",
   "type": "module",
   "scripts": {
-    "dev": "npx trigger.dev@latest dev",
-    "deploy": "npx trigger.dev@latest deploy",
+    "dev": "npx trigger.dev@4.4.6 dev",
+    "deploy": "npx trigger.dev@4.4.6 deploy",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@trigger.dev/sdk": "4.4.5"
+    "@trigger.dev/sdk": "4.4.6"
   },
   "devDependencies": {
-    "@trigger.dev/build": "4.4.5",
+    "@trigger.dev/build": "4.4.6",
     "dotenv": "^17.4.2",
     "typescript": "^5.8.0"
   }

@@ -7,12 +7,14 @@ import type {
   RoundConfig,
 } from "./types.js";
 import { runDiscovery } from "./serper.js";
-import { fetchUrl } from "./spider.js";
+import { fetchUrl } from "./firecrawl.js";
 import { extractWithOpenAI, validateDomainSemantic } from "./openai.js";
 import { scoreAndFilter } from "./filters.js";
 import { isSupabaseConfigured, checkTable, pushToSupabase, getRecentCompanyNames } from "./supabase.js";
 import { pushToWebhook } from "./webhook.js";
 import { lookupDomainMultiSignal, isDomainBlocked, type ContextClues } from "./domain-lookup.js";
+import { normalizeAmount } from "./normalize-amount.js";
+import { day0BlitzEnrich } from "./enrich-company.js";
 
 const SUSPECT_DOMAIN_PATTERNS = [
   /newswire|businesswire|prnewswire|einpresswire|globenewswire/i,
@@ -40,6 +42,15 @@ function isExtractedDomainSuspect(domain: string, sourceUrl: string): boolean {
     if (domain === sourceDomain) return true;
   } catch { /* ignore */ }
   return false;
+}
+
+export function extractDateFromUrl(url: string): string | null {
+  const match = url.match(/\/(\d{4})\/(\d{2})\/(\d{2})\//);
+  if (!match) return null;
+  const [, y, m, d] = match;
+  const year = parseInt(y), month = parseInt(m), day = parseInt(d);
+  if (year < 2020 || year > 2030 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return `${y}-${m}-${d}`;
 }
 
 function sanitizeDomain(domain: string): string {
@@ -148,17 +159,23 @@ function extractContextClues(
 
 function buildEnrichedRecord(
   company: Candidate,
-  extracted: { company_name?: string; company_domain?: string; amount_raised?: string; lead_investors?: string; round_reasoning?: string } | null,
+  extracted: { company_name?: string; company_domain?: string; amount_raised?: string; lead_investors?: string; round_reasoning?: string; funding_date?: string } | null,
   domain: string,
   sourceUrl: string,
   roundLabel: string,
   articleText: string | null,
   pipelineId: string
 ): EnrichedRecord {
+  const amountRaw = extracted?.amount_raised ?? company.amount ?? "";
+  const norm = normalizeAmount(amountRaw);
+
   return {
     company_name: extracted?.company_name ?? company.company_name,
     company_domain: sanitizeDomain(domain),
-    amount_raised: extracted?.amount_raised ?? company.amount ?? "",
+    amount_raised: amountRaw,
+    amount_raised_usd: norm?.value_usd ?? null,
+    amount_raised_currency: norm?.currency ?? null,
+    funding_date: extractDateFromUrl(sourceUrl) ?? (extracted?.funding_date && extracted.funding_date !== "not_stated" ? extracted.funding_date : null),
     round_type: company.round_type ?? roundLabel,
     source_url: sourceUrl,
     lead_investors: extracted?.lead_investors ?? "not_stated",
@@ -173,10 +190,16 @@ function buildEnrichedRecord(
 }
 
 function buildSkipEnrichRecord(company: Candidate, roundLabel: string, pipelineId: string): EnrichedRecord {
+  const amountRaw = company.amount ?? "";
+  const norm = normalizeAmount(amountRaw);
+
   return {
     company_name: company.company_name,
     company_domain: "not_enriched",
-    amount_raised: company.amount ?? "",
+    amount_raised: amountRaw,
+    amount_raised_usd: norm?.value_usd ?? null,
+    amount_raised_currency: norm?.currency ?? null,
+    funding_date: extractDateFromUrl(company.best_source_url),
     round_type: company.round_type ?? roundLabel,
     source_url: company.best_source_url,
     lead_investors: "not_enriched",
@@ -389,6 +412,19 @@ export async function runFundingPipeline(
       if (tableExists) {
         const upserted = await pushToSupabase(highMedium, config.date, rc.supabaseTable);
         logger.info(`Supabase: ${upserted}/${highMedium.length} upserted to ${rc.supabaseTable}`);
+
+        // Day-0 company enrichment (Blitz, free). Misses stay NULL for the
+        // delayed DiscoLike retry pass (enrichment-retry-weekly).
+        const targets = highMedium
+          .filter((r) => r.company_domain)
+          .map((r) => ({
+            companyName: r.company_name,
+            domain: r.company_domain,
+            sourceUrl: r.source_url,
+          }));
+        if (targets.length > 0) {
+          await day0BlitzEnrich("funding_discoveries", targets);
+        }
       } else {
         logger.warn(`Supabase table ${rc.supabaseTable} not found`);
       }

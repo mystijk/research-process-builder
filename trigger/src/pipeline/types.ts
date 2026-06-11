@@ -72,6 +72,7 @@ export interface ExtractedData {
   round_reasoning: string;
   industry?: string;
   location?: string;
+  funding_date?: string;
 }
 
 export interface EnrichedRecord {
@@ -87,6 +88,9 @@ export interface EnrichedRecord {
   score: number;
   discovered_by: string;
   discovered_by_pipeline: string;
+  amount_raised_usd?: number | null;
+  amount_raised_currency?: string | null;
+  funding_date?: string | null;
   confidence?: ConfidenceLevel;
 }
 

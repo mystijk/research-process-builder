@@ -11,7 +11,7 @@ const VC_PATTERNS =
   /\b(Capital|Ventures|Partners|Fund|Investment|Advisors|Management|Sequoia|Andreessen|Bessemer|Greylock|Accel|Lightspeed|GV|YC|a16z|Khosla|NEA|Insight|Tiger Global|Coatue|General Catalyst)\b/i;
 
 const AMOUNT_PATTERN =
-  /[$€£¥]\s*[\d,.]+\s*[MBmb](?:illion)?|\d+\s*(?:million|billion)/i;
+  /(?:[$€£¥₹]|\b(?:EUR|GBP|KRW|INR|JPY|CHF|CAD|AUD|SEK|NOK|DKK|BRL|RUB|USD|RS)(?=\b|\d))\s*[\d,.]+\s*(?:[KMBTkmbt]|million|billion|thousand|\b[Cc]rore\b|\b[Cc]r\b)(?:\b|$|[\s,;.])|\d+\s*(?:million|billion|thousand|\b[Cc]rore\b|\b[Cc]r\b)\b/i;
 
 const SOCIAL_DOMAINS = new Set([
   "whatsapp.com", "whatsapp.net", "t.me", "telegram.me", "telegram.org",

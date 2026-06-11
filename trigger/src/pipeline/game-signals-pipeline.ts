@@ -11,7 +11,8 @@ const SUPABASE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   process.env.SUPABASE_ANON_KEY ??
   "";
-const CLAY_WEBHOOK_URL = process.env.CLAY_GAME_SIGNALS_WEBHOOK ?? "";
+const CLAY_ANNOUNCEMENTS_WEBHOOK = process.env.CLAY_GAME_ANNOUNCEMENTS_WEBHOOK ?? "";
+const CLAY_FUNDING_WEBHOOK = process.env.CLAY_GAME_FUNDING_WEBHOOK ?? "";
 const CLAY_CALLBACK_URL = process.env.CLAY_GAME_SIGNALS_CALLBACK_URL ?? "https://clay-game-callback.leadgrowai.workers.dev";
 
 const TABLE = "game_signals";
@@ -228,17 +229,19 @@ async function pushToSupabase(signals: GameSignalRecord[]): Promise<number> {
 }
 
 async function pushToClay(signals: GameSignalRecord[]): Promise<number> {
-  if (!CLAY_WEBHOOK_URL) return 0;
-
   const enrichable = signals.filter((s) => s.developer);
   if (enrichable.length === 0) return 0;
 
   // Create all tokens and fire all webhooks in parallel
   const pending = await Promise.all(
     enrichable.map(async (s) => {
+      const webhookUrl = s.signal_type === "studio_funding"
+        ? CLAY_FUNDING_WEBHOOK
+        : CLAY_ANNOUNCEMENTS_WEBHOOK;
+      if (!webhookUrl) return null;
       try {
         const token = await wait.createToken({ timeout: "5m" });
-        const resp = await fetch(CLAY_WEBHOOK_URL, {
+        const resp = await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
