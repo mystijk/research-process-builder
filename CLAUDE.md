@@ -29,88 +29,15 @@ SUPABASE_KEY=
 
 Domain classifier also reads `DOMAIN_CLASSIFIER_KEY` if present (optional, falls back to conservative rejection).
 
-**Local script env loading:** Hook blocks direct `.env` reads from Claude. To test scripts that need API keys, write a `.py` file that loads via `dotenv` internally: `load_dotenv(Path(__file__).resolve().parents[2] / ".env")`. Parent `.env` is at `C:\Users\mitch\Everything_CC\.env`. Never reference `.env` in the shell command itself — the hook catches the string.
+**Env loading:** Global hook blocks direct `.env` reads. Scripts load via `dotenv` internally.
 
-## Run the Series A Pipeline
+## Pipelines & Monitors
 
-```bash
-# Full daily run (stages 1-4: discover → filter → enrich → output CSV+JSON)
-py scripts/series_a_pipeline.py
-
-# Weekly catch-up
-py scripts/series_a_pipeline.py --tbs qdr:w
-
-# Discovery only (stage 1)
-py scripts/series_a_pipeline.py --stage 1
-
-# Skip enrichment scraping
-py scripts/series_a_pipeline.py --skip-enrich
-
-# Dry-run (preview queries, no API calls)
-py scripts/series_a_pipeline.py --dry-run
-
-# Specific date
-py scripts/series_a_pipeline.py --date 2026-04-20
-```
-
-Outputs land in `output/` as `series-a-YYYY-MM-DD.csv` + `.json`, and `output/series-a-master.csv`.
-
-## Ground-Truth Validation
-
-Continuous GT validation replaces the manual re-harvest cycle. Samples Supabase `funding_discoveries`, verifies each domain via the resolver agent, promotes confirmed pairs to `KNOWN_GOOD_DOMAINS`:
-
-```bash
-# Dry-run: sample 10 rows from last 14 days
-py scripts/gt_validation.py --sample 10 --days 14
-
-# Apply promotions to eval_pipeline.py
-py scripts/gt_validation.py --sample 10 --days 14 --apply
-```
-
-State tracked in `data/gt_validation_state.json` — reruns skip already-processed pairs.
-
-## Domain Resolver
-
-Two-tier domain resolution used across all pipelines:
-
-```bash
-# Classify a domain
-py scripts/domain_classifier.py --domain example.com
-
-# Seed classifier cache from prior resolver runs
-py scripts/domain_classifier.py --seed-from-resolver
-```
-
-**Key rule:** `real_company` verdict accepts. Anything else (`unknown`, API error, no key) rejects. Do not fix domain slip-throughs by appending to `BLOCKED_DOMAINS` — fix the classifier or seed its cache.
-
-## Anneal a Prompt
-
-Graduated prompts live in `prompts/[name]/`. To re-score the extraction prompt:
-
-```bash
-py prompts/extract-companies-batch/score.py --prompt prompts/extract-companies-batch/candidates/v004.json
-```
-
-Re-anneal trigger: score drops below 0.95 on live test set. Add new failure cases to `test_cases.json` first. Cost: ~$0.005, takes 5-10 min.
-
-## Monitor Architecture
-
-Monitors are **orphan git branches** mounted as worktrees — isolated history, independent versioning.
-
-```bash
-# Mount existing monitor (after cloning)
-git worktree add monitors/series-a-daily monitor/series-a-daily
-
-# Create new monitor
-git checkout --orphan monitor/[name]
-git rm -rf --cached .
-# ... add config/, output/, runs/, scripts/
-git add . && git commit -m "feat: initialize [name] monitor"
-git checkout master
-git worktree add monitors/[name] monitor/[name]
-```
-
-`monitors/` is gitignored on master. Each monitor has its own `config/monitor.json`, `runs/run-log.json`, and `output/YYYY-MM-DD/`.
+- **Series A pipeline:** `py scripts/series_a_pipeline.py` (supports `--dry-run`, `--stage N`, `--tbs qdr:w`, `--skip-enrich`, `--date`)
+- **GT validation:** `py scripts/gt_validation.py --sample 10 --days 14` (add `--apply` to promote)
+- **Domain classifier:** `py scripts/domain_classifier.py --domain example.com`
+- **Prompt scoring:** `py prompts/[name]/score.py --prompt prompts/[name]/candidates/vNNN.json`
+- **Monitors:** Orphan git branches mounted as worktrees. See `MONITORS.md` for setup.
 
 ## Building a New Research Process
 
